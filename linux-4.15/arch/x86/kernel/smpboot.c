@@ -215,6 +215,9 @@ static int enable_start_cpu0;
  */
 static void notrace start_secondary(void *unused)
 {
+#ifdef CONFIG_PERCPU_PGTBL
+	load_cr3(kernel_to_cpu_pgdp(swapper_pg_dir, raw_smp_processor_id()));
+#endif
 	/*
 	 * Don't put *anything* except direct CPU state initialization
 	 * before cpu_init(), SMP booting is too fragile that we want to

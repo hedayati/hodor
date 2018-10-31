@@ -684,7 +684,12 @@ void __init init_mem_mapping(void)
 	early_ioremap_page_table_range_init();
 #endif
 
+#ifdef CONFIG_PERCPU_PGTBL
+	sync_initial_page_table();
+	load_cr3(kernel_to_cpu_pgdp(swapper_pg_dir, raw_smp_processor_id()));
+#else
 	load_cr3(swapper_pg_dir);
+#endif
 	__flush_tlb_all();
 
 	x86_init.hyper.init_mem_mapping();

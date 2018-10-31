@@ -355,7 +355,11 @@ void initialize_tlbstate_and_flush(void)
 	unsigned long cr3 = __read_cr3();
 
 	/* Assert that CR3 already references the right mm. */
+#ifdef CONFIG_PERCPU_PGTBL
+	WARN_ON((cr3 & CR3_ADDR_MASK) != __pa(kernel_to_cpu_pgdp(mm->pgd, smp_processor_id())));
+#else
 	WARN_ON((cr3 & CR3_ADDR_MASK) != __pa(mm->pgd));
+#endif
 
 	/*
 	 * Assert that CR4.PCIDE is set if needed.  (CR4.PCIDE initialization

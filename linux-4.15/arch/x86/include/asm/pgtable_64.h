@@ -28,6 +28,7 @@ extern pgd_t init_top_pgt[];
 #define swapper_pg_dir init_top_pgt
 
 extern void paging_init(void);
+void sync_initial_page_table(void);
 
 #define pte_ERROR(e)					\
 	pr_err("%s:%d: bad pte %p(%016lx)\n",		\
@@ -62,7 +63,22 @@ static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 
 static inline void native_set_pte(pte_t *ptep, pte_t pte)
 {
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long hodor_pte_page_addr = __va(__pa_symbol(hodor_pte_page));
+	if (hodor_pte_page_addr <= ptep &&
+	    ptep < hodor_pte_page_addr + 64 * PAGE_SIZE) {
+		int i;
+		for (i = 0; i < 64; ++i) {
+			unsigned long hodor_pte_addr =
+				hodor_pte_page_addr + i * PAGE_SIZE;
+			hodor_pte_addr |= ((unsigned long)ptep & ~PAGE_MASK);
+			*((pte_t *)hodor_pte_addr) = pte;
+		}
+	} else
+		*ptep = pte;
+#else
 	*ptep = pte;
+#endif
 }
 
 static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)
@@ -72,7 +88,22 @@ static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)
 
 static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long hodor_pmd_page_addr = __va(__pa_symbol(hodor_pmd_page));
+	if (hodor_pmd_page_addr <= pmdp &&
+	    pmdp < hodor_pmd_page_addr + 64 * PAGE_SIZE) {
+		int i;
+		for (i = 0; i < 64; ++i) {
+			unsigned long hodor_pmd_addr =
+				hodor_pmd_page_addr + i * PAGE_SIZE;
+			hodor_pmd_addr |= ((unsigned long)pmdp & ~PAGE_MASK);
+			*((pmd_t *)hodor_pmd_page_addr) = pmd;
+		}
+	} else
+		*pmdp = pmd;
+#else
 	*pmdp = pmd;
+#endif
 }
 
 static inline void native_pmd_clear(pmd_t *pmd)
@@ -108,7 +139,22 @@ static inline pmd_t native_pmdp_get_and_clear(pmd_t *xp)
 
 static inline void native_set_pud(pud_t *pudp, pud_t pud)
 {
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long hodor_pud_page_addr = __va(__pa_symbol(hodor_pud_page));
+	if (hodor_pud_page_addr <= pudp &&
+	    pudp < hodor_pud_page_addr + 64 * PAGE_SIZE) {
+		int i;
+		for (i = 0; i < 64; ++i) {
+			unsigned long hodor_pud_addr =
+				hodor_pud_page_addr + i * PAGE_SIZE;
+			hodor_pud_addr |= ((unsigned long)pudp & ~PAGE_MASK);
+			*((pud_t *)hodor_pud_addr) = pud;
+		}
+	} else
+		*pudp = pud;
+#else
 	*pudp = pud;
+#endif
 }
 
 static inline void native_pud_clear(pud_t *pud)
@@ -158,6 +204,23 @@ static inline void *ptr_clear_bit(void *ptr, int bit)
 	__ptr &= ~BIT(bit);
 	return (void *)__ptr;
 }
+#ifdef CONFIG_PERCPU_PGTBL
+static inline void *ptr_set_cpu(void *ptr, unsigned long cpu)
+{
+	unsigned long __ptr = (unsigned long)ptr;
+
+	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
+	__ptr |= (cpu << (PAGE_SHIFT + 1));
+	return (void *)__ptr;
+}
+static inline void *ptr_clear_cpu(void *ptr)
+{
+	unsigned long __ptr = (unsigned long)ptr;
+
+	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
+	return (void *)__ptr;
+}
+#endif
 
 static inline pgd_t *kernel_to_user_pgdp(pgd_t *pgdp)
 {
@@ -178,6 +241,18 @@ static inline p4d_t *user_to_kernel_p4dp(p4d_t *p4dp)
 {
 	return ptr_clear_bit(p4dp, PTI_PGTABLE_SWITCH_BIT);
 }
+
+#ifdef CONFIG_PERCPU_PGTBL
+static inline pgd_t *kernel_to_cpu_pgdp(pgd_t *pgdp, unsigned long cpu)
+{
+	return ptr_set_cpu(pgdp, cpu);
+}
+
+static inline pgd_t *cpu_to_kernel_pgdp(pgd_t *pgdp)
+{
+	return ptr_clear_cpu(pgdp);
+}
+#endif
 #endif /* CONFIG_PAGE_TABLE_ISOLATION */
 
 /*

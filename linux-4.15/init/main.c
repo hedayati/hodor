@@ -509,6 +509,9 @@ static void __init mm_init(void)
 	init_espfix_bsp();
 	/* Should be run after espfix64 is set up. */
 	pti_init();
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	sync_initial_page_table();
+#endif
 }
 
 asmlinkage __visible void __init start_kernel(void)

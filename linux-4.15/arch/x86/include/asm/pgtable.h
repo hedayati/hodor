@@ -45,6 +45,19 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
 	__visible;
 #define ZERO_PAGE(vaddr) (virt_to_page(empty_zero_page))
 
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+extern unsigned long hodor_scratch_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_pte_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_pmd_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_pud_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_p4d_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+#endif
+
 extern spinlock_t pgd_lock;
 extern struct list_head pgd_list;
 
@@ -1121,13 +1134,53 @@ static inline int pud_write(pud_t pud)
  */
 static inline void clone_pgd_range(pgd_t *dst, pgd_t *src, int count)
 {
+#ifdef CONFIG_PERCPU_PGTBL
+	unsigned long i;
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_cpu_pgdp(dst, i), kernel_to_cpu_pgdp(src, i),
+		       count * sizeof(pgd_t));
+#else
 	memcpy(dst, src, count * sizeof(pgd_t));
+#endif
 #ifdef CONFIG_PAGE_TABLE_ISOLATION
 	if (!static_cpu_has(X86_FEATURE_PTI))
 		return;
 	/* Clone the user space pgd as well */
+#ifdef CONFIG_PERCPU_PGTBL
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_user_pgdp(kernel_to_cpu_pgdp(dst, i)),
+		       kernel_to_user_pgdp(kernel_to_cpu_pgdp(src, i)),
+		       count * sizeof(pgd_t));
+#else
 	memcpy(kernel_to_user_pgdp(dst), kernel_to_user_pgdp(src),
 	       count * sizeof(pgd_t));
+#endif
+#endif
+}
+
+static inline void clone_pgd_range_early(pgd_t *dst, pgd_t *src, int count)
+{
+#ifdef CONFIG_PERCPU_PGTBL
+	unsigned long i;
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_cpu_pgdp(dst, i), cpu_to_kernel_pgdp(src),
+		       count * sizeof(pgd_t));
+#else
+	memcpy(dst, src, count * sizeof(pgd_t));
+#endif
+#ifdef CONFIG_PAGE_TABLE_ISOLATION
+	if (!static_cpu_has(X86_FEATURE_PTI))
+		return;
+	/* Clone the user space pgd as well */
+#ifdef CONFIG_PERCPU_PGTBL
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_user_pgdp(kernel_to_cpu_pgdp(dst, i)),
+		       kernel_to_user_pgdp(cpu_to_kernel_pgdp(src)),
+		       count * sizeof(pgd_t));
+#else
+	memcpy(kernel_to_user_pgdp(dst), kernel_to_user_pgdp(src),
+	       count * sizeof(pgd_t));
+#endif
 #endif
 }
 

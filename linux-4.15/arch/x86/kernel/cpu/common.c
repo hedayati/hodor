@@ -1514,6 +1514,12 @@ void cpu_init(void)
 	int cpu = raw_smp_processor_id();
 	int i;
 
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long *hodor_addr = 0xffffffffff578000;
+	printk(KERN_INFO "cpu_init cpu:%d hodor:%d\n", cpu, *hodor_addr);
+	*hodor_addr = cpu;
+#endif
+
 	wait_for_master_cpu(cpu);
 
 	/*

@@ -203,6 +203,9 @@ For 32-bit we have the following conventions - kernel is built with
 #define PTI_USER_PCID_BIT		X86_CR3_PTI_PCID_USER_BIT
 #define PTI_USER_PCID_MASK		(1 << PTI_USER_PCID_BIT)
 #define PTI_USER_PGTABLE_AND_PCID_MASK  (PTI_USER_PCID_MASK | PTI_USER_PGTABLE_MASK)
+#ifdef CONFIG_PERCPU_PGTBL
+#define PTI_CPU_MASK			(0x3F << (PAGE_SHIFT + 1))
+#endif
 
 .macro SET_NOFLUSH_BIT	reg:req
 	bts	$X86_CR3_PCID_NOFLUSH_BIT, \reg
@@ -255,6 +258,13 @@ For 32-bit we have the following conventions - kernel is built with
 .Lwrcr3_\@:
 	/* Flip the PGD to the user version */
 	orq     $(PTI_USER_PGTABLE_MASK), \scratch_reg
+#ifdef CONFIG_PERCPU_PGTBL
+	andq	$(~PTI_CPU_MASK), \scratch_reg
+	mov		PER_CPU_VAR(cpu_number), \scratch_reg2
+	shl		$(PAGE_SHIFT + 1), \scratch_reg2
+	andq	$(PTI_CPU_MASK), \scratch_reg2
+	orq		\scratch_reg2, \scratch_reg
+#endif
 	mov	\scratch_reg, %cr3
 .Lend_\@:
 .endm

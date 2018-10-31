@@ -104,6 +104,13 @@ enable:
 
 pgd_t __pti_set_user_pgd(pgd_t *pgdp, pgd_t pgd)
 {
+#ifdef CONFIG_PERCPU_PGTBL
+	unsigned long i;
+	pgdp = cpu_to_kernel_pgdp(pgdp);
+
+	for (i = 0; i < 64; ++i)
+		kernel_to_cpu_pgdp(pgdp, i)->pgd = pgd.pgd;
+#endif
 	/*
 	 * Changes to the high (kernel) portion of the kernelmode page
 	 * tables are not automatically propagated to the usermode tables.
@@ -120,7 +127,12 @@ pgd_t __pti_set_user_pgd(pgd_t *pgdp, pgd_t pgd)
 	 * The user page tables get the full PGD, accessible from
 	 * userspace:
 	 */
+#ifdef CONFIG_PERCPU_PGTBL
+	for (i = 0; i < 64; ++i)
+		kernel_to_user_pgdp(kernel_to_cpu_pgdp(pgdp, i))->pgd = pgd.pgd;
+#else
 	kernel_to_user_pgdp(pgdp)->pgd = pgd.pgd;
+#endif
 
 	/*
 	 * If this is normal user memory, make it NX in the kernel
@@ -136,8 +148,13 @@ pgd_t __pti_set_user_pgd(pgd_t *pgdp, pgd_t pgd)
 	 *  - we're clearing the PGD (i.e. the new pgd is not present).
 	 */
 	if ((pgd.pgd & (_PAGE_USER|_PAGE_PRESENT)) == (_PAGE_USER|_PAGE_PRESENT) &&
-	    (__supported_pte_mask & _PAGE_NX))
+	    (__supported_pte_mask & _PAGE_NX)) {
+#ifdef CONFIG_PERCPU_PGTBL
+	    for (i = 0; i < 64; ++i)
+			kernel_to_cpu_pgdp(pgdp, i)->pgd |= _PAGE_NX;
+#endif
 		pgd.pgd |= _PAGE_NX;
+	}
 
 	/* return the copy of the PGD we want the kernel to use: */
 	return pgd;

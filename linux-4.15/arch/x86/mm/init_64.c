@@ -735,6 +735,152 @@ void __init initmem_init(void)
 }
 #endif
 
+#ifdef CONFIG_PERCPU_PGTBL
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+static inline void setup_hodor_pgd(pgd_t *root)
+{
+	unsigned long i;
+	for (i = 0; i < 64; ++i) {
+		unsigned long address = __fix_to_virt(FIX_HODOR_SCRATCH);
+		unsigned int level;
+		pgd_t *pgd;
+		p4d_t *p4d;
+		pud_t *pud;
+		pmd_t *pmd;
+		pte_t *pte;
+		pte_t new_pte = pfn_pte(
+			(__pa_symbol(hodor_scratch_page) + i * PAGE_SIZE) >>
+				PAGE_SHIFT,
+			PAGE_SHARED);
+
+		pgd = kernel_to_cpu_pgdp(root, i);
+		pgd += pgd_index(address);
+
+		pte = lookup_address_in_pgd(pgd, address, &level);
+
+		if (pte) {
+			pgd_t *s_pgd, *s_pgdp;
+			p4d_t *s_p4d, *s_p4dp;
+			pud_t *s_pud, *s_pudp;
+			pmd_t *s_pmd, *s_pmdp;
+			pte_t *s_pte, *s_ptep;
+
+			pgd = kernel_to_cpu_pgdp(root, 0) + pgd_index(address);
+			p4d = p4d_offset(pgd, address);
+			pud = pud_offset(p4d, address);
+			pmd = pmd_offset(pud, address);
+
+			s_ptep = __va(__pa_symbol(hodor_pte_page)) +
+				 i * PAGE_SIZE;
+			s_pmdp = __va(__pa_symbol(hodor_pmd_page)) +
+				 i * PAGE_SIZE;
+			s_pudp = __va(__pa_symbol(hodor_pud_page)) +
+				 i * PAGE_SIZE;
+			s_p4dp = __va(__pa_symbol(hodor_p4d_page)) +
+				 i * PAGE_SIZE;
+			s_pgdp = kernel_to_cpu_pgdp(root, i);
+
+			memcpy(s_ptep, (unsigned long)pte & PAGE_MASK,
+			       PAGE_SIZE);
+			memcpy(s_pmdp, (unsigned long)pmd & PAGE_MASK,
+			       PAGE_SIZE);
+			memcpy(s_pudp, (unsigned long)pud & PAGE_MASK,
+			       PAGE_SIZE);
+			memcpy(s_p4dp, (unsigned long)p4d & PAGE_MASK,
+			       PAGE_SIZE);
+
+			s_pgd = s_pgdp + pgd_index(address);
+
+			*s_pgd = __pgd(__pa(s_p4dp) | _KERNPG_TABLE);
+			s_p4d = p4d_offset(s_pgd, address);
+			*s_p4d = __p4d(__pa(s_pudp) | _KERNPG_TABLE);
+			s_pud = pud_offset(s_p4d, address);
+			*s_pud = __pud(__pa(s_pmdp) | _KERNPG_TABLE);
+			s_pmd = pmd_offset(s_pud, address);
+			*s_pmd = __pmd(__pa(s_ptep) | _KERNPG_TABLE);
+			s_pte = s_ptep + pte_index(address);
+
+			*s_pte = new_pte;
+		} else
+			printk(KERN_INFO "kernel: couldn't find pte %d.\n", i);
+	}
+
+	/* do the same for user-space. */
+	for (i = 0; i < 64; ++i) {
+		unsigned long address = __fix_to_virt(FIX_HODOR_SCRATCH);
+		pgd_t *pgd;
+		p4d_t *p4d;
+		pud_t *pud;
+		pmd_t *pmd;
+		pte_t *pte;
+		pgd_t *s_pgd, *s_pgdp;
+		p4d_t *s_p4d, *s_p4dp;
+		pud_t *s_pud, *s_pudp;
+		pmd_t *s_pmd, *s_pmdp;
+		pte_t *s_pte, *s_ptep;
+		pte_t new_pte = pfn_pte(
+			(__pa_symbol(hodor_scratch_page) + i * PAGE_SIZE) >>
+				PAGE_SHIFT,
+			PAGE_SHARED);
+
+		pgd = kernel_to_user_pgdp(kernel_to_cpu_pgdp(root, 0)) +
+		      pgd_index(address);
+		p4d = p4d_offset(pgd, address);
+		pud = pud_offset(p4d, address);
+		pmd = pmd_offset(pud, address);
+		pte = pte_offset_kernel(pmd, address);
+
+		s_ptep = __va(__pa_symbol(hodor_pte_page)) +
+			 (64 + i) * PAGE_SIZE;
+		s_pmdp = __va(__pa_symbol(hodor_pmd_page)) +
+			 (64 + i) * PAGE_SIZE;
+		s_pudp = __va(__pa_symbol(hodor_pud_page)) +
+			 (64 + i) * PAGE_SIZE;
+		s_p4dp = __va(__pa_symbol(hodor_p4d_page)) +
+			 (64 + i) * PAGE_SIZE;
+		s_pgdp = kernel_to_user_pgdp(
+			kernel_to_cpu_pgdp(root, i));
+
+		memcpy(s_ptep, (unsigned long)pte & PAGE_MASK,
+		       PAGE_SIZE);
+		memcpy(s_pmdp, (unsigned long)pmd & PAGE_MASK,
+		       PAGE_SIZE);
+		memcpy(s_pudp, (unsigned long)pud & PAGE_MASK,
+		       PAGE_SIZE);
+		memcpy(s_p4dp, (unsigned long)p4d & PAGE_MASK,
+		       PAGE_SIZE);
+
+		s_pgd = s_pgdp + pgd_index(address);
+
+		*s_pgd = __pgd(__pa(s_p4dp) | _PAGE_TABLE);
+		s_p4d = p4d_offset(s_pgd, address);
+		*s_p4d = __p4d(__pa(s_pudp) | _PAGE_TABLE);
+		s_pud = pud_offset(s_p4d, address);
+		*s_pud = __pud(__pa(s_pmdp) | _PAGE_TABLE);
+		s_pmd = pmd_offset(s_pud, address);
+		*s_pmd = __pmd(__pa(s_ptep) | _PAGE_TABLE);
+		s_pte = s_ptep + pte_index(address);
+
+		*s_pte = new_pte;
+	}
+}
+#endif
+
+void sync_initial_page_table(void)
+{
+	clone_pgd_range_early(swapper_pg_dir + KERNEL_PGD_BOUNDARY,
+			      swapper_pg_dir + KERNEL_PGD_BOUNDARY,
+			      KERNEL_PGD_PTRS);
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	setup_hodor_pgd(swapper_pg_dir);
+#endif
+}
+#else
+void sync_initial_page_table(void)
+{
+}
+#endif
+
 void __init paging_init(void)
 {
 	sparse_memory_present_with_active_regions(MAX_NUMNODES);
