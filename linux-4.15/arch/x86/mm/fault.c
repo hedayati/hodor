@@ -11,6 +11,7 @@
 #include <linux/bootmem.h>		/* max_low_pfn			*/
 #include <linux/kprobes.h>		/* NOKPROBE_SYMBOL, ...		*/
 #include <linux/mmiotrace.h>		/* kmmio_handler, ...		*/
+#include <linux/tlbpoison.h>		/* tlbpoison_handler, ...	*/
 #include <linux/perf_event.h>		/* perf_sw_event		*/
 #include <linux/hugetlb.h>		/* hstate_index_to_shift	*/
 #include <linux/prefetch.h>		/* prefetchw			*/
@@ -54,6 +55,14 @@ static nokprobe_inline int kprobes_fault(struct pt_regs *regs)
 	}
 
 	return ret;
+}
+
+static nokprobe_inline int
+tlbpoison_fault(struct pt_regs *regs, unsigned long addr)
+{
+	if (!tlbpoison_handler(regs, addr))
+		return 1;
+	return 0;
 }
 
 /*
@@ -1296,8 +1305,12 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
 	if (unlikely(kprobes_fault(regs)))
 		return;
 
-	if (unlikely(error_code & X86_PF_RSVD))
+	if (unlikely(error_code & X86_PF_RSVD)) {
+		if (likely(tlbpoison_fault(regs, address)))
+			return;
+
 		pgtable_bad(regs, error_code, address);
+	}
 
 	if (unlikely(smap_violation(error_code, regs))) {
 		bad_area_nosemaphore(regs, error_code, address, NULL);

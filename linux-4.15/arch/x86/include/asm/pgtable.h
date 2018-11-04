@@ -349,6 +349,26 @@ static inline pte_t pte_clrglobal(pte_t pte)
 	return pte_clear_flags(pte, _PAGE_GLOBAL);
 }
 
+static inline pte_t pte_mkpresent(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_PRESENT);
+}
+
+static inline pte_t pte_clrpresent(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_PRESENT);
+}
+
+static inline pte_t pte_mkreserved(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_RSVD);
+}
+
+static inline pte_t pte_clrreserved(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_RSVD);
+}
+
 static inline pte_t pte_mkspecial(pte_t pte)
 {
 	return pte_set_flags(pte, _PAGE_SPECIAL);
@@ -659,6 +679,13 @@ static inline int pte_same(pte_t a, pte_t b)
 static inline int pte_present(pte_t a)
 {
 	return pte_flags(a) & (_PAGE_PRESENT | _PAGE_PROTNONE);
+}
+
+static inline int pte_reserved(pte_t pte)
+{
+	if (native_pte_val(pte) & _PAGE_RSVD)
+		return 1;
+	return 0;
 }
 
 #ifdef __HAVE_ARCH_PTE_DEVMAP

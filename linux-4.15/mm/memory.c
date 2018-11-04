@@ -1301,6 +1301,12 @@ again:
 		if (pte_none(ptent))
 			continue;
 
+		if (pte_reserved(ptent)) {
+			*pte = pte_clrreserved(*pte);
+			*pte = pte_mkpresent(*pte);
+			ptent = *pte;
+		}
+
 		if (pte_present(ptent)) {
 			struct page *page;
 
