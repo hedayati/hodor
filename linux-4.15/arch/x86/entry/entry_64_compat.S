@@ -88,6 +88,7 @@ ENTRY(entry_SYSENTER_compat)
 	pushq   $0			/* pt_regs->r9  = 0 */
 	pushq   $0			/* pt_regs->r10 = 0 */
 	pushq   $0			/* pt_regs->r11 = 0 */
+	pushq   $0			/* pt_regs->hodor = 0 */
 	pushq   %rbx                    /* pt_regs->rbx */
 	pushq   %rbp                    /* pt_regs->rbp (will be overwritten) */
 	pushq   $0			/* pt_regs->r12 = 0 */
@@ -217,6 +218,7 @@ GLOBAL(entry_SYSCALL_compat_after_hwframe)
 	pushq   $0			/* pt_regs->r9  = 0 */
 	pushq   $0			/* pt_regs->r10 = 0 */
 	pushq   $0			/* pt_regs->r11 = 0 */
+	pushq   $0			/* pt_regs->hodor = 0 */
 	pushq   %rbx                    /* pt_regs->rbx */
 	pushq   %rbp                    /* pt_regs->rbp (will be overwritten) */
 	pushq   $0			/* pt_regs->r12 = 0 */
@@ -341,6 +343,7 @@ ENTRY(entry_INT80_compat)
 	pushq   $0			/* pt_regs->r9  = 0 */
 	pushq   $0			/* pt_regs->r10 = 0 */
 	pushq   $0			/* pt_regs->r11 = 0 */
+	pushq   $0			/* pt_regs->hodor = 0 */
 	pushq   %rbx                    /* pt_regs->rbx */
 	pushq   %rbp                    /* pt_regs->rbp */
 	pushq   %r12                    /* pt_regs->r12 */

@@ -74,51 +74,55 @@ For 32-bit we have the following conventions - kernel is built with
 #define RBP		4*8
 #define RBX		5*8
 /* These regs are callee-clobbered. Always saved on kernel entry. */
-#define R11		6*8
-#define R10		7*8
-#define R9		8*8
-#define R8		9*8
-#define RAX		10*8
-#define RCX		11*8
-#define RDX		12*8
-#define RSI		13*8
-#define RDI		14*8
+#define HODOR		6*8
+#define R11		7*8
+#define R10		8*8
+#define R9		9*8
+#define R8		10*8
+#define RAX		11*8
+#define RCX		12*8
+#define RDX		13*8
+#define RSI		14*8
+#define RDI		15*8
 /*
  * On syscall entry, this is syscall#. On CPU exception, this is error code.
  * On hw interrupt, it's IRQ number:
  */
-#define ORIG_RAX	15*8
+#define ORIG_RAX	16*8
 /* Return frame for iretq */
-#define RIP		16*8
-#define CS		17*8
-#define EFLAGS		18*8
-#define RSP		19*8
-#define SS		20*8
+#define RIP		17*8
+#define CS		18*8
+#define EFLAGS		19*8
+#define RSP		20*8
+#define SS		21*8
 
-#define SIZEOF_PTREGS	21*8
+#define SIZEOF_PTREGS	22*8
 
 	.macro ALLOC_PT_GPREGS_ON_STACK
-	addq	$-(15*8), %rsp
+	addq	$-(16*8), %rsp
 	.endm
 
 	.macro SAVE_C_REGS_HELPER offset=0 rax=1 rcx=1 r8910=1 r11=1
 	.if \r11
-	movq %r11, 6*8+\offset(%rsp)
+	movq %r11, 7*8+\offset(%rsp)
 	.endif
 	.if \r8910
-	movq %r10, 7*8+\offset(%rsp)
-	movq %r9,  8*8+\offset(%rsp)
-	movq %r8,  9*8+\offset(%rsp)
+	movq %r10, 8*8+\offset(%rsp)
+	movq %r9,  9*8+\offset(%rsp)
+	movq %r8,  10*8+\offset(%rsp)
 	.endif
 	.if \rax
-	movq %rax, 10*8+\offset(%rsp)
+	movq %rax, 11*8+\offset(%rsp)
 	.endif
 	.if \rcx
-	movq %rcx, 11*8+\offset(%rsp)
+	movq %rcx, 12*8+\offset(%rsp)
 	.endif
-	movq %rdx, 12*8+\offset(%rsp)
-	movq %rsi, 13*8+\offset(%rsp)
-	movq %rdi, 14*8+\offset(%rsp)
+	movq %rdx, 13*8+\offset(%rsp)
+	movq %rsi, 14*8+\offset(%rsp)
+	movq %rdi, 15*8+\offset(%rsp)
+	movabs $0xffffffffff578ff0, %rsi
+	movq (%rsi), %rsi
+	movq %rsi, 6*8+\offset(%rsp)	/* HODOR */
 	UNWIND_HINT_REGS offset=\offset extra=0
 	.endm
 	.macro SAVE_C_REGS offset=0
@@ -157,6 +161,9 @@ For 32-bit we have the following conventions - kernel is built with
 	.endm
 
 	.macro POP_C_REGS
+	popq %r11	/* HODOR */
+	movabs $0xffffffffff578ff0, %r10
+	movq %r11, (%r10)
 	popq %r11
 	popq %r10
 	popq %r9

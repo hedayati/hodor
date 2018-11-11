@@ -236,6 +236,9 @@ GLOBAL(entry_SYSCALL_64_after_hwframe)
 	pushq	%r9				/* pt_regs->r9 */
 	pushq	%r10				/* pt_regs->r10 */
 	pushq	%r11				/* pt_regs->r11 */
+	movabs	$0xffffffffff578ff0, %r11
+	movq	(%r11), %r11
+	pushq	%r11				/* pt_regs->hodor */
 	sub	$(6*8), %rsp			/* pt_regs->bp, bx, r12-15 not saved */
 	UNWIND_HINT_REGS extra=0
 
@@ -394,6 +397,9 @@ syscall_return_via_sysret:
 	UNWIND_HINT_EMPTY
 	POP_EXTRA_REGS
 .Lpop_c_regs_except_rcx_r11_and_sysret:
+	popq	%rsi	/* HODOR */
+	movabs	$0xffffffffff578ff0, %r10
+	movq	%rsi, (%r10)
 	popq	%rsi	/* skip r11 */
 	popq	%r10
 	popq	%r9
@@ -735,6 +741,9 @@ GLOBAL(swapgs_restore_regs_and_return_to_usermode)
 1:
 #endif
 	POP_EXTRA_REGS
+	popq	%r11	/* HODOR */
+	movabs	$0xffffffffff578ff0, %r10
+	movq	%r11, (%r10)
 	popq	%r11
 	popq	%r10
 	popq	%r9
@@ -1520,6 +1529,9 @@ ENTRY(nmi)
 	pushq   %r9		/* pt_regs->r9 */
 	pushq   %r10		/* pt_regs->r10 */
 	pushq   %r11		/* pt_regs->r11 */
+	movabs	$0xffffffffff578ff0, %rdi
+	movq	(%rdi), %rdi
+	pushq   %rdi		/* pt_regs->hodor */
 	pushq	%rbx		/* pt_regs->rbx */
 	pushq	%rbp		/* pt_regs->rbp */
 	pushq	%r12		/* pt_regs->r12 */

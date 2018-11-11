@@ -37,30 +37,31 @@
 #define RBP 32
 #define RBX 40
 /* These regs are callee-clobbered. Always saved on kernel entry. */
-#define R11 48
-#define R10 56
-#define R9 64
-#define R8 72
-#define RAX 80
-#define RCX 88
-#define RDX 96
-#define RSI 104
-#define RDI 112
+#define HODOR 48
+#define R11 56
+#define R10 64
+#define R9 72
+#define R8 80
+#define RAX 88
+#define RCX 96
+#define RDX 104
+#define RSI 112
+#define RDI 120
 /*
  * On syscall entry, this is syscall#. On CPU exception, this is error code.
  * On hw interrupt, it's IRQ number:
  */
-#define ORIG_RAX 120
+#define ORIG_RAX 128
 /* Return frame for iretq */
-#define RIP 128
-#define CS 136
-#define EFLAGS 144
-#define RSP 152
-#define SS 160
+#define RIP 136
+#define CS 144
+#define EFLAGS 152
+#define RSP 160
+#define SS 168
 #endif /* __ASSEMBLY__ */
 
 /* top of stack page */
-#define FRAME_SIZE 168
+#define FRAME_SIZE 176
 
 #endif /* !__i386__ */
 
