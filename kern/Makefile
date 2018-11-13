@@ -4,7 +4,7 @@ CONFIG_HODOR=m
 list-m :=
 list-$(CONFIG_HODOR) += hodor
 obj-$(CONFIG_HODOR) += hodor.o
-hodor-objs := core.o
+hodor-objs := core.o breakpoint.o
 
 KVER  := $(shell uname -r)
 EXTRACT := $(M)/extract_symbol.sh
