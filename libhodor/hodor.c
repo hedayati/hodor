@@ -15,8 +15,6 @@
 int hodor_fd;
 struct hodor_config config;
 
-#define plib_name "ld-2.27.so"
-
 static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
   if (ent->x) {
     unsigned long i;
@@ -50,6 +48,4 @@ int hodor_init(void) {
   return ioctl(hodor_fd, HODOR_CONFIG, &config);
 }
 
-int hodor_enter(struct hodor_tls *tls) {
-  return ioctl(hodor_fd, HODOR_ENTER, tls);
-}
+int hodor_enter() { return ioctl(hodor_fd, HODOR_ENTER); }

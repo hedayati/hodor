@@ -239,6 +239,7 @@ int arm_exit_tramp(unsigned long addr) {
   /*
    * TODO: arm a timer so that we don't wait forever.
    */
+  mod_timer(&tls->sig_lockup_handler, jiffies + msecs_to_jiffies(1000 * 10));
 
 out:
   return ret;

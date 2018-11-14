@@ -35,5 +35,12 @@ typedef void (*dune_procmap_cb)(const struct dune_procmap_entry *);
 extern void dune_procmap_iterate(dune_procmap_cb cb);
 extern void dune_procmap_dump();
 
+struct tls {
+  unsigned long ustack;
+  unsigned long pstack;
+};
+
+#define GET_TLS ((struct tls *)((struct hodor_tls *)*HODOR_REG)->status_page)
+
 extern int hodor_init(void);
-extern int hodor_enter(struct hodor_tls *);
+extern int hodor_enter(void);

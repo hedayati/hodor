@@ -47,6 +47,10 @@ static int hodor_config(struct hodor_config *uconf) {
     goto out;
   }
 
+  /*
+   * TODO: mark config page inaccessible by the user.
+   */
+
   tls = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
                 MAP_ANONYMOUS | MAP_PRIVATE, 0);
   if (!tls) {
@@ -55,6 +59,10 @@ static int hodor_config(struct hodor_config *uconf) {
     ret = -ENOMEM;
     goto free_config;
   }
+
+  /*
+   * TODO: mark tls as read-only by the user.
+   */
 
   printk(
       KERN_INFO
@@ -75,7 +83,18 @@ out:
   return ret;
 }
 
-static int hodor_enter(struct hodor_tls *utls) {
+static void sig_lockup_handler(struct timer_list *t) {
+  struct hodor_tls *tls = from_timer(tls, t, sig_lockup_handler);
+  struct task_struct *tsk = tls->tsk;
+
+  printk(KERN_ALERT "Hodor: signal has been delayed for too long.\n");
+
+  spin_lock_irq(&tsk->sighand->siglock);
+  recalc_sigpending(); /* see hodor_deny_signal() */
+  spin_unlock_irq(&tsk->sighand->siglock);
+}
+
+static int hodor_enter(void) {
   unsigned ret = 0;
   struct task_struct *tsk = current;
   struct pt_regs *regs = task_pt_regs(tsk);
@@ -103,10 +122,17 @@ static int hodor_enter(struct hodor_tls *utls) {
     tls = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
                   MAP_ANONYMOUS | MAP_PRIVATE, 0);
 
+    /*
+     * TODO: mark tls as read-only by the user.
+     */
+
     tls->config = config;
   }
   tls->tsk = tsk;
-  // TODO: copy utls to tls
+  tls->status_page = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
+                             MAP_ANONYMOUS | MAP_PRIVATE, 0);
+  timer_setup(&tls->sig_lockup_handler, sig_lockup_handler, 0);
+
   regs->hodor = tls;
 
   return init_task_instr_inspection();
@@ -135,12 +161,7 @@ static long hodor_dev_ioctl(struct file *filp, unsigned int ioctl,
       r = hodor_config(&conf);
       break;
     case HODOR_ENTER:
-      r = copy_from_user(&tls, (int __user *)arg, sizeof(struct hodor_tls));
-      if (r) {
-        r = -EIO;
-        goto out;
-      }
-      r = hodor_enter(&tls);
+      r = hodor_enter();
       break;
     default:
       return -ENOTTY;
@@ -180,6 +201,13 @@ bool hodor_deny_signal(void) {
   if (!tls) return false;
   config = tls->config;
 
+  if (tls->sig_delayed) {
+    printk(KERN_ALERT "not delaying double signal ip: %lx region: %d\n",
+           regs->ip, i);
+    tls->sig_delayed = false;
+    return false;
+  }
+
   for (i = 0; i < config->region_count; ++i) {
     if (!config->region_pkey[i] || !config->exit_tramp_va[i]) continue;
     if (regs->ip >= config->region_begin_va[i] &&
@@ -191,6 +219,7 @@ bool hodor_deny_signal(void) {
         spin_unlock_irq(&tsk->sighand->siglock);
 
         arm_exit_tramp(config->exit_tramp_va[i]);
+        tls->sig_delayed = true;
         return true;
       }
     }

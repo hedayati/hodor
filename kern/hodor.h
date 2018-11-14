@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __KERNEL__
+#include <linux/timer.h>
+#endif
+
 #include <linux/types.h>
 
 #define HODOR_MINOR 233
@@ -8,7 +12,7 @@ struct hodor_config;
 struct hodor_tls;
 
 #define HODOR_CONFIG _IOR(HODOR_MINOR, 0x01, struct hodor_config)
-#define HODOR_ENTER _IOR(HODOR_MINOR, 0x02, struct hodor_tls)
+#define HODOR_ENTER _IO(HODOR_MINOR, 0x02)
 
 #define HODOR_SCRATCH_AREA ((unsigned long *)0xffffffffff578000)
 #define HODOR_REG ((unsigned long *)0xffffffffff578ff0)
@@ -25,10 +29,14 @@ struct hodor_config {
 };
 
 struct hodor_tls {
-  struct task_struct *tsk;
+  /* keep status page first. */
+  unsigned long status_page;
+#ifdef __KERNEL__
   struct hodor_config *config;
-  unsigned long ustack;
-  unsigned long pstack;
+  struct task_struct *tsk;
+  struct timer_list sig_lockup_handler;
+  bool sig_delayed;
+#endif
 };
 
 int init_task_instr_inspection(void);

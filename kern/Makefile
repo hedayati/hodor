@@ -17,7 +17,7 @@ PWD=$(shell pwd)
 all: modules
 
 clean:
-	rm -f *.mod.c *.mod *.o *.ko .*.cmd .*.flags .lst *.lst *.order *.symvers
+	rm -f *.mod.c *.mod *.o *.ko .*.cmd .*.flags .lst *.lst *.order *.symvers .cache.mk
 	rm -rf $(PWD)/tmp
 
 TMP=$(PWD)/tmp
