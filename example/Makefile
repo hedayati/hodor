@@ -1,4 +1,4 @@
-SUBDIRS	= kern libhodor tests
+SUBDIRS	= plib app
 
 all: $(SUBDIRS)
 
