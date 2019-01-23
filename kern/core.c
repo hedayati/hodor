@@ -24,7 +24,7 @@ MODULE_VERSION("1.0");
 struct hodor_opts opts;
 
 static int hodor_config(struct hodor_config *uconf) {
-  unsigned ret = 0;
+  unsigned ret = 0, i;
   struct task_struct *tsk = current;
   struct pt_regs *regs = task_pt_regs(tsk);
   struct mm_struct *mm = tsk->mm;
@@ -64,10 +64,7 @@ static int hodor_config(struct hodor_config *uconf) {
    * TODO: mark tls as read-only by the user.
    */
 
-  printk(
-      KERN_INFO
-      "Hodor: session configured successfully (%d regions, %d inspection).\n",
-      uconf->region_count, uconf->inspect_count);
+  printk(KERN_INFO "Hodor: session configured successfully.\n");
 
   tls->config = config;
 

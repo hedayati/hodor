@@ -22,15 +22,15 @@ static void signal_br_handler(struct perf_event *bp,
   unsigned i;
   struct task_struct *tsk = current;
   struct thread_struct *thread = &tsk->thread;
-  struct mm_struct *mm = tsk->mm;
-  struct hodor_tls *tls = regs->hodor;
-  struct hodor_config *config = tls->config;
+  struct hodor_tls *tls = (struct hodor_tls *)regs->hodor;
 
   for (i = 0; i < HBP_NUM; i++) {
     if (thread->ptrace_bps[i] == bp) break;
   }
 
   printk(KERN_ALERT "Hodor: allowing signal...\n");
+
+  del_timer(&tls->sig_lockup_handler);
 
   spin_lock_irq(&tsk->sighand->siglock);
   recalc_sigpending(); /* see hodor_deny_signal() */
@@ -45,8 +45,7 @@ static void inspection_br_handler(struct perf_event *bp,
   unsigned i;
   struct task_struct *tsk = current;
   struct thread_struct *thread = &tsk->thread;
-  struct mm_struct *mm = tsk->mm;
-  struct hodor_tls *tls = regs->hodor;
+  struct hodor_tls *tls = (struct hodor_tls *)regs->hodor;
   struct hodor_config *config = tls->config;
 
   for (i = 0; i < HBP_NUM; i++) {
@@ -55,7 +54,7 @@ static void inspection_br_handler(struct perf_event *bp,
 
   if (config->inspect_count >= i &&
       config->inspect_begin_va[i] == bp->attr.bp_addr) {
-    char *text = config->inspect_begin_va[i];
+    char *text = (char *)config->inspect_begin_va[i];
     if (text[0] == '\x0F' && text[1] == '\x01' && text[2] == '\xEF') {
       if (regs->ax != 0x55555554) {
         siginfo_t info;
@@ -158,12 +157,11 @@ static struct perf_event *register_instr_inspection_breakpoint(
 }
 
 int init_task_instr_inspection(void) {
-  unsigned ret = 0, i, j;
+  unsigned ret = 0, i;
   struct task_struct *tsk = current;
   struct thread_struct *thread = &tsk->thread;
   struct pt_regs *regs = task_pt_regs(tsk);
-  struct mm_struct *mm = tsk->mm;
-  struct hodor_tls *tls = regs->hodor;
+  struct hodor_tls *tls = (struct hodor_tls *)regs->hodor;
   struct hodor_config *config = tls->config;
 
   if (config->inspect_count > 3) {
@@ -216,13 +214,11 @@ static struct perf_event *register_signal_breakpoint(struct task_struct *tsk,
 }
 
 int arm_exit_tramp(unsigned long addr) {
-  unsigned ret = 0, i, j;
+  unsigned ret = 0;
   struct task_struct *tsk = current;
   struct thread_struct *thread = &tsk->thread;
   struct pt_regs *regs = task_pt_regs(tsk);
-  struct mm_struct *mm = tsk->mm;
-  struct hodor_tls *tls = regs->hodor;
-  struct hodor_config *config = tls->config;
+  struct hodor_tls *tls = (struct hodor_tls *)regs->hodor;
 
   struct perf_event *bp = register_signal_breakpoint(
       tsk, X86_BREAKPOINT_LEN_X, X86_BREAKPOINT_EXECUTE, addr, false);
