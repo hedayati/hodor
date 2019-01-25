@@ -126,8 +126,10 @@ static int hodor_enter(void) {
     tls->config = config;
   }
   tls->tsk = tsk;
-  tls->status_page = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                             MAP_ANONYMOUS | MAP_PRIVATE, 0);
+  tls->status_page_u = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
+                               MAP_ANONYMOUS | MAP_PRIVATE, 0);
+  tls->status_page_p = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
+                               MAP_ANONYMOUS | MAP_PRIVATE, 0);
   timer_setup(&tls->sig_lockup_handler, sig_lockup_handler, 0);
 
   regs->hodor = tls;

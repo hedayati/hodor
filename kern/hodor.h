@@ -29,8 +29,9 @@ struct hodor_config {
 };
 
 struct hodor_tls {
-  /* keep status page first. */
-  unsigned long status_page;
+  /* keep status pages first. */
+  unsigned long status_page_u;
+  unsigned long status_page_p;
 #ifdef __KERNEL__
   struct hodor_config *config;
   struct task_struct *tsk;

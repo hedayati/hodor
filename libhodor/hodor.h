@@ -38,11 +38,12 @@ extern void dune_procmap_iterate(dune_procmap_cb cb);
 extern void dune_procmap_dump();
 
 struct tls {
-  unsigned long ustack;
-  unsigned long pstack;
+  unsigned long stack;
 };
 
-#define GET_TLS ((struct tls *)((struct hodor_tls *)*HODOR_REG)->status_page)
+#define TLSU ((struct tls *)((struct hodor_tls *)*HODOR_REG)->status_page_u)
+#define TLSP ((struct tls *)((struct hodor_tls *)*HODOR_REG)->status_page_p)
+#define PROTECTED_STACK_SIZE 16 * PAGE_SIZE
 
 extern int hodor_init(void);
 extern int hodor_enter(void);

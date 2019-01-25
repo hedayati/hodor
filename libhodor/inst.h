@@ -28,6 +28,24 @@ static inline void x86_inst_movabs_rax(char *stream, unsigned long *idx,
   *idx += 10;
 }
 
+static inline void x86_inst_movabs_r10(char *stream, unsigned long *idx,
+                                       unsigned long val) {
+  /*
+   * movabs $val, %10           49 ba xx xx xx xx xx xx xx xx
+   */
+  stream[*idx + 0] = '\x49';
+  stream[*idx + 1] = '\xba';
+  stream[*idx + 2] = (char)(val >> 0) & 0xff;
+  stream[*idx + 3] = (char)(val >> 8) & 0xff;
+  stream[*idx + 4] = (char)(val >> 16) & 0xff;
+  stream[*idx + 5] = (char)(val >> 24) & 0xff;
+  stream[*idx + 6] = (char)(val >> 32) & 0xff;
+  stream[*idx + 7] = (char)(val >> 40) & 0xff;
+  stream[*idx + 8] = (char)(val >> 48) & 0xff;
+  stream[*idx + 9] = (char)(val >> 56) & 0xff;
+  *idx += 10;
+}
+
 static inline void x86_inst_jpmq_rax(char *stream, unsigned long *idx) {
   /*
    * jmpq   *%rax                 ff e0
@@ -192,6 +210,39 @@ static inline void x86_inst_mov_atrax_rax(char *stream, unsigned long *idx) {
   *idx += 3;
 }
 
+static inline void x86_inst_mov_atrax_rax_off8(char *stream, unsigned long *idx,
+                                               unsigned short off) {
+  /*
+   * mov $xx(%rax), %rax                 48 8b 40 xx
+   */
+  stream[*idx + 0] = '\x48';
+  stream[*idx + 1] = '\x8b';
+  stream[*idx + 2] = '\x40';
+  stream[*idx + 3] = (char)(off & 0xff);
+  *idx += 4;
+}
+
+static inline void x86_inst_mov_atr10_r10(char *stream, unsigned long *idx) {
+  /*
+   * mov (%r10), %r10                 4d 8b 12
+   */
+  stream[*idx + 0] = '\x4d';
+  stream[*idx + 1] = '\x8b';
+  stream[*idx + 2] = '\x12';
+  *idx += 3;
+}
+
+static inline void x86_inst_add_rax_8(char *stream, unsigned long *idx) {
+  /*
+   * add $xx, %rax                 48 83 c0 08
+   */
+  stream[*idx + 0] = '\x48';
+  stream[*idx + 1] = '\x83';
+  stream[*idx + 2] = '\xc0';
+  stream[*idx + 3] = '\x08';
+  *idx += 4;
+}
+
 static inline void x86_inst_mov_rsp_atrax(char *stream, unsigned long *idx) {
   /*
    * mov %rsp, (%rax)                 48 89 20
@@ -209,6 +260,16 @@ static inline void x86_inst_mov_atrax_rsp(char *stream, unsigned long *idx) {
   stream[*idx + 0] = '\x48';
   stream[*idx + 1] = '\x8b';
   stream[*idx + 2] = '\x20';
+  *idx += 3;
+}
+
+static inline void x86_inst_mov_atr10_rsp(char *stream, unsigned long *idx) {
+  /*
+   * mov (%r10), %rsp                 49 8b 22
+   */
+  stream[*idx + 0] = '\x49';
+  stream[*idx + 1] = '\x8b';
+  stream[*idx + 2] = '\x22';
   *idx += 3;
 }
 

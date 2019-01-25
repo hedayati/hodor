@@ -60,6 +60,14 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
    * jmpq   1b                    e9 xx xx xx xx
    * ***********************************************************
    */
+
+  x86_inst_movabs_rax(tramp_text, tramp_idx, HODOR_REG);
+  x86_inst_mov_atrax_rax(tramp_text, tramp_idx);  // (%rax) points to kernel_tls
+  x86_inst_mov_atrax_rax(tramp_text,
+                         tramp_idx);  // (%rax) points to unprotected_tls
+  x86_inst_mov_rsp_atrax(tramp_text,
+                         tramp_idx);  // unprotected_tls->stack = %rsp
+
   x86_inst_push_rcx(tramp_text, tramp_idx);
   x86_inst_push_rdx(tramp_text, tramp_idx);
   x86_inst_xor_ecx_ecx(tramp_text, tramp_idx);
@@ -71,6 +79,12 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_jne_rel8(tramp_text, tramp_idx, lbl0);
   x86_inst_pop_rdx(tramp_text, tramp_idx);
   x86_inst_pop_rcx(tramp_text, tramp_idx);
+
+  x86_inst_movabs_rax(tramp_text, tramp_idx, HODOR_REG);
+  x86_inst_mov_atrax_rax(tramp_text, tramp_idx);  // (%rax) points to kernel_tls
+  x86_inst_mov_atrax_rax_off8(tramp_text, tramp_idx,
+                              0x8);  // (%rax) points to protected_tls
+  x86_inst_mov_atrax_rsp(tramp_text, tramp_idx);  // %rsp = protected_tls->stack
 
   x86_inst_movabs_rax(tramp_text, tramp_idx, (unsigned long)func_text + 32);
   x86_inst_callq_rax(tramp_text, tramp_idx);
@@ -88,6 +102,13 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_pop_rdx(tramp_text, tramp_idx);
   x86_inst_pop_rcx(tramp_text, tramp_idx);
   x86_inst_pop_rax(tramp_text, tramp_idx);
+
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
+  x86_inst_mov_atr10_r10(tramp_text, tramp_idx);  // (%rax) points to kernel_tls
+  x86_inst_mov_atr10_r10(tramp_text,
+                         tramp_idx);  // (%rax) points to unprotected_tls
+  x86_inst_mov_atr10_rsp(tramp_text,
+                         tramp_idx);  // %rsp = unprotected_tls->stack
 
   x86_inst_jmpq_rel32(tramp_text, tramp_idx, (unsigned long)tramp_text);
 }
@@ -109,8 +130,11 @@ static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
         exit(-EINVAL);
       }
 
-      tramp_text = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC,
-                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+      // Each trampoline is roughly 128 bytes.
+      tramp_text = mmap(
+          NULL, (1 + (hodor_plib_funcs_count * 128) / PAGE_SIZE) * PAGE_SIZE,
+          PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1,
+          0);
       if (!tramp_text) {
         printf("libhodor: failed allocating trampoline pages for %s\n",
                ent->path);
@@ -241,10 +265,32 @@ int hodor_init(void) {
 }
 
 int hodor_enter() {
+  int ret = 0;
+
   if (hodor_fd <= 0) {
     printf("libhodor: call hodor_init() before hodor_enter.\n");
     return -EINVAL;
   }
 
-  return ioctl(hodor_fd, HODOR_ENTER);
+  ret = ioctl(hodor_fd, HODOR_ENTER);
+  if (ret) {
+    printf("libhodor: fail to enter.\n");
+    goto out;
+  }
+
+  TLSP->stack =
+      (unsigned long)mmap(NULL, PROTECTED_STACK_SIZE, PROT_READ | PROT_WRITE,
+                          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  if (!TLSP->stack) {
+    printf("libhodor: failed allocating protected stack pages.\n");
+    ret = -ENOMEM;
+  }
+
+  // point to the bottom of stack
+  TLSP->stack += PROTECTED_STACK_SIZE;
+  TLSU->stack = 0;
+
+out:
+  return ret;
 }
