@@ -88,7 +88,12 @@ static inline void x86_inst_rdpkru(char *stream, unsigned long *idx) {
   *idx += 3;
 }
 
-static inline void x86_inst_wrpkru(char *stream, unsigned long *idx) {
+/*
+ * We have to prevent this from being inlined, or we will waste a breakpoint
+ * inspecting it.
+ */
+static __attribute__((noinline)) void x86_inst_wrpkru(char *stream,
+                                                      unsigned long *idx) {
   /*
    * wrpkru                       0f 01 ef
    */

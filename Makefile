@@ -1,4 +1,4 @@
-SUBDIRS	= kern libhodor tests
+SUBDIRS	= kern libhodor tests example
 
 all: $(SUBDIRS)
 

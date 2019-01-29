@@ -42,23 +42,26 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
     }
 
   /*
-   * movabs $tramp, %rax    48 b8 xx xx xx xx xx xx xx xx
-   * jmpq   *%rax           ff e0
+   * movabs $tramp, %rax
+   * jmpq   *%rax
    */
   x86_inst_movabs_rax(func_text, &func_text_idx,
                       (unsigned long)&tramp_text[*tramp_idx]);
   x86_inst_jpmq_rax(func_text, &func_text_idx);
 
   /*
-   * 1:
+   * ********************** BOUNDARY_TRAMP *********************
    * retq                         c3
-   * ***********************************************************
+   * ************************ TRAMPOLINE ***********************
+   * save source %rsp
    * flip protection
-   * movabs $(text + 32), %rax    48 b8 xx xx xx xx xx xx xx xx
-   * callq  %rax                  ff d0
+   * restore destination %rsp
+   * movabs $(text + 32), %rax
+   * callq  %rax
    * flip protection again
-   * jmpq   1b                    e9 xx xx xx xx
-   * ***********************************************************
+   * restore source %rsp
+   * jmpq   $BOUNDARY_TRAMP
+   * ********************* NEXT TRAMPOLINE *********************
    */
 
   x86_inst_movabs_rax(tramp_text, tramp_idx, HODOR_REG);
@@ -73,9 +76,10 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_xor_ecx_ecx(tramp_text, tramp_idx);
   x86_inst_xor_edx_edx(tramp_text, tramp_idx);
   unsigned long lbl0 = (unsigned long)&tramp_text[*tramp_idx];
-  x86_inst_rdpkru(tramp_text, tramp_idx);
+  // x86_inst_rdpkru(tramp_text, tramp_idx);
+  x86_inst_mov_eax(tramp_text, tramp_idx, 0x55555550);
   x86_inst_wrpkru(tramp_text, tramp_idx);
-  x86_inst_cmp_eax(tramp_text, tramp_idx, 0x55555554);
+  x86_inst_cmp_eax(tramp_text, tramp_idx, 0x55555550);
   x86_inst_jne_rel8(tramp_text, tramp_idx, lbl0);
   x86_inst_pop_rdx(tramp_text, tramp_idx);
   x86_inst_pop_rcx(tramp_text, tramp_idx);
@@ -95,9 +99,10 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_xor_ecx_ecx(tramp_text, tramp_idx);
   x86_inst_xor_edx_edx(tramp_text, tramp_idx);
   unsigned long lbl1 = (unsigned long)&tramp_text[*tramp_idx];
-  x86_inst_rdpkru(tramp_text, tramp_idx);
+  // x86_inst_rdpkru(tramp_text, tramp_idx);
+  x86_inst_mov_eax(tramp_text, tramp_idx, 0x55555558);
   x86_inst_wrpkru(tramp_text, tramp_idx);
-  x86_inst_cmp_eax(tramp_text, tramp_idx, 0x55555554);
+  x86_inst_cmp_eax(tramp_text, tramp_idx, 0x55555558);
   x86_inst_jne_rel8(tramp_text, tramp_idx, lbl1);
   x86_inst_pop_rdx(tramp_text, tramp_idx);
   x86_inst_pop_rcx(tramp_text, tramp_idx);
@@ -118,7 +123,7 @@ static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
     unsigned long i;
     char *text;
     unsigned index = config.region_count;
-    bool is_plib = (strcmp(ent->path, hodor_plib_path) == 0);
+    bool is_plib = (hodor_plib_path && strcmp(ent->path, hodor_plib_path) == 0);
     void *plib_handle = NULL;
     char *tramp_text = NULL;
     unsigned long tramp_idx = 0;
@@ -149,16 +154,15 @@ static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
     config.region_pkey[index] = is_plib ? 1 : 0;
     config.exit_tramp_va[index] = (unsigned long)tramp_text;
 
-    if (!is_plib) {
-      text = (char *)ent->begin;
-      for (i = 0; i < config.region_len[index] - 3; ++i) {
-        if (text[i] == '\x0F' && text[i + 1] == '\x01' &&
-            text[i + 2] == '\xEF') {
-          config.inspect_begin_va[config.inspect_count++] =
-              (unsigned long)&text[i];
-        }
+    text = (char *)ent->begin;
+    for (i = 0; i < config.region_len[index] - 3; ++i) {
+      if (text[i] == '\x0f' && text[i + 2] == '\xef' && text[i + 1] == '\x01') {
+        config.inspect_begin_va[config.inspect_count++] =
+            (unsigned long)&text[i];
       }
-    } else {
+    }
+
+    if (is_plib) {
       mprotect((void *)ent->begin, ent->end - ent->begin,
                PROT_READ | PROT_WRITE);
 
@@ -195,7 +199,8 @@ static inline bool strstarts(const char *pre, const char *str) {
   return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
 }
 
-static int callback(struct dl_phdr_info *info, size_t size, void *data) {
+static int elf_symtab_callback(struct dl_phdr_info *info, size_t size,
+                               void *data) {
   unsigned i;
 
   if (strstr(info->dlpi_name, "vdso")) return 0;
@@ -257,7 +262,7 @@ int hodor_init(void) {
     return -errno;
   }
 
-  dl_iterate_phdr(callback, NULL);
+  dl_iterate_phdr(elf_symtab_callback, NULL);
 
   dune_procmap_iterate(&__setup_mappings_cb);
 
@@ -266,6 +271,7 @@ int hodor_init(void) {
 
 int hodor_enter() {
   int ret = 0;
+  int pkey;
 
   if (hodor_fd <= 0) {
     printf("libhodor: call hodor_init() before hodor_enter.\n");
@@ -290,6 +296,24 @@ int hodor_enter() {
   // point to the bottom of stack
   TLSP->stack += PROTECTED_STACK_SIZE;
   TLSU->stack = 0;
+
+  /*
+   * For now, let's hard-code the PKEY = 1 for the (single) protected library
+   * that we support.
+   */
+  pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
+  assert(pkey == 1);
+
+  /*
+   * We will never need to write to kernel TLS pointed to by *HODOR_REG. While
+   * not yet implemented, any modification to the protections and/or mapping new
+   * executable pages will be intercepted by Hodor kernel module and vetted
+   * (see. hodor_deny_signal() for how signals are vetted.)
+   */
+  mprotect(*HODOR_REG, PAGE_SIZE, PROT_READ);
+  pkey_mprotect(TLSP->stack - PROTECTED_STACK_SIZE, PROTECTED_STACK_SIZE,
+                PROT_READ | PROT_WRITE, pkey);
+  pkey_mprotect(TLSP, PAGE_SIZE, PROT_READ | PROT_WRITE, pkey);
 
 out:
   return ret;

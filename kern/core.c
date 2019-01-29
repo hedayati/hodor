@@ -203,6 +203,7 @@ bool hodor_deny_signal(void) {
   if (tls->sig_delayed) {
     printk(KERN_ALERT "not delaying double signal ip: %lx region: %d\n",
            regs->ip, i);
+    del_timer(&tls->sig_lockup_handler);
     tls->sig_delayed = false;
     return false;
   }
