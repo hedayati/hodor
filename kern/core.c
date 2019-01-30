@@ -201,7 +201,7 @@ bool hodor_deny_signal(void) {
   config = tls->config;
 
   if (tls->sig_delayed) {
-    printk(KERN_ALERT "not delaying double signal ip: %lx region: %d\n",
+    printk(KERN_ALERT "Hodor: not delaying double signal ip: %lx region: %d\n",
            regs->ip, i);
     del_timer(&tls->sig_lockup_handler);
     tls->sig_delayed = false;
@@ -212,7 +212,8 @@ bool hodor_deny_signal(void) {
     if (!config->region_pkey[i] || !config->exit_tramp_va[i]) continue;
     if (regs->ip >= config->region_begin_va[i] &&
         regs->ip <= config->region_begin_va[i] + config->region_len[i]) {
-      printk(KERN_ALERT "delaying signal ip: %lx region: %d\n", regs->ip, i);
+      printk(KERN_ALERT "Hodor: delaying signal ip: %lx region: %d\n", regs->ip,
+             i);
       if (signal_pending(tsk)) {
         spin_lock_irq(&tsk->sighand->siglock);
         clear_tsk_thread_flag(tsk, TIF_SIGPENDING);
@@ -222,6 +223,66 @@ bool hodor_deny_signal(void) {
         tls->sig_delayed = true;
         return true;
       }
+    }
+  }
+
+  return false;
+}
+
+static inline unsigned int rdpkru(void) {
+  unsigned int eax, edx;
+  unsigned int ecx = 0;
+  unsigned int pkru;
+
+  asm volatile(".byte 0x0f,0x01,0xee\n\t" : "=a"(eax), "=d"(edx) : "c"(ecx));
+  pkru = eax;
+  return pkru;
+}
+
+bool hodor_deny_mmap(void *addr, size_t len, int prot, int flags,
+                     struct file *file, vm_flags_t vm_flags,
+                     unsigned long pgoff) {
+  unsigned i;
+  struct task_struct *tsk = current;
+  struct pt_regs *regs = task_pt_regs(tsk);
+  struct hodor_tls *tls = regs->hodor;
+  struct hodor_config *config = NULL;
+
+  if (!tls) return false;
+  config = tls->config;
+
+  for (i = 0; i < config->region_count; ++i) {
+    if (regs->ip >= config->region_begin_va[i] &&
+        regs->ip <= config->region_begin_va[i] + config->region_len[i]) {
+      printk(KERN_INFO
+             "Hodor: allowing mmap() addr:0x%lx len:%ld prot:0x%x pkru:0x%x "
+             "ip:0x%lx "
+             "region:%d\n",
+             addr, len, prot, rdpkru(), regs->ip, i);
+    }
+  }
+
+  return false;
+}
+
+bool hodor_deny_mprotect(void *addr, size_t len, int prot, int pkey) {
+  unsigned i;
+  struct task_struct *tsk = current;
+  struct pt_regs *regs = task_pt_regs(tsk);
+  struct hodor_tls *tls = regs->hodor;
+  struct hodor_config *config = NULL;
+
+  if (!tls) return false;
+  config = tls->config;
+
+  for (i = 0; i < config->region_count; ++i) {
+    if (regs->ip >= config->region_begin_va[i] &&
+        regs->ip <= config->region_begin_va[i] + config->region_len[i]) {
+      printk(KERN_INFO
+             "Hodor: allowing mprotect() addr:0x%lx len:%ld prot:0x%x pkey:%d "
+             "pkru:0x%x ip:0x%lx "
+             "region:%d\n",
+             addr, len, prot, pkey, rdpkru(), regs->ip, i);
     }
   }
 
@@ -238,6 +299,8 @@ static int __init hodor_init(void) {
 
   opts.private = NULL;
   opts.deny_signal = hodor_deny_signal;
+  opts.deny_mmap = hodor_deny_mmap;
+  opts.deny_mprotect = hodor_deny_mprotect;
   register_hodor_opts(&opts);
 
   return r;

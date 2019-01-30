@@ -22,6 +22,21 @@ bool hodor_deny_signal(void) {
 	return opts->deny_signal();
 }
 
+extern bool hodor_deny_mmap(void *addr, size_t len, int prot, int flags,
+                  struct file *file, vm_flags_t vm_flags, unsigned long pgoff) {
+	if (!opts)
+		return false;
+
+	return opts->deny_mmap(addr, len, prot, flags, file, vm_flags, pgoff);
+}
+
+extern bool hodor_deny_mprotect(void *addr, size_t len, int prot, int pkey) {
+	if (!opts)
+		return false;
+
+	return opts->deny_mprotect(addr, len, prot, pkey);
+}
+
 int register_hodor_opts(struct hodor_opts *p) {
 	unsigned long flags;
 	int ret = 0;

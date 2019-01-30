@@ -36,11 +36,11 @@
 #include <linux/nsproxy.h>
 #include <linux/user_namespace.h>
 #include <linux/uprobes.h>
-#include <linux/hodor.h>
 #include <linux/compat.h>
 #include <linux/cn_proc.h>
 #include <linux/compiler.h>
 #include <linux/posix-timers.h>
+#include <linux/hodor.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/signal.h>

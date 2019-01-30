@@ -13,7 +13,7 @@ int main(int argc, char const *argv[]) {
    * inspections.
    * hodor_enter() create status pages (aka domain status pages) to save/restore
    * states when transitioning between domains.
-   * Both require Hodor-PKU kernel and kern/hodor.ko to be loaded.
+   * Both require Hodor-PKU kernel and kern/hodor.ko should be loaded.
    */
   ret = hodor_init();
   ret = hodor_enter();

@@ -34,7 +34,7 @@ int plib_sum(int a, int b) {
 HODOR_FUNC_EXPORT(plib_sum, 2);
 
 /*
- * Hodor will not insert a trampoline for plib_mul since it is not *
+ * Hodor will not insert a trampoline for plib_mul since it is not
  * HODOR_FUNC_EXPORTed. You would want to avoid paying the cost of trampolines
  * if your security model allows it (e.g., only reading a status without need
  * for making integrity-sensitive pages writable.)

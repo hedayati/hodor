@@ -26,8 +26,8 @@
  * in the original domain.
  * NOTE: Any HODOR_FUNC_EXPORTed function must use HODOR_FUNC_PROLOGUE at its
  * beginning to allow sufficient space for trampoline hooks. HODOR_FUNC_PROLOGUE
- * only inserts nop instructions so it does not affect the functionality of the
- * library even if it is loaded without Hodor.
+ * only inserts `nop` instructions so it does not affect the functionality of
+ * the library even if it is loaded without Hodor.
  */
 #define HODOR_FUNC_EXPORT(sym, n)  \
   void __hodor_func_##sym(void){}; \
