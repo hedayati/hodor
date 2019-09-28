@@ -23,9 +23,14 @@
 int hodor_fd = -1;
 struct hodor_config config;
 
+struct __hodor_func {
+  char *sym;
+  unsigned argc;
+};
+
 char *hodor_plib_path = NULL;
 char *hodor_plib_init_func = NULL;
-char *hodor_plib_funcs[1024];
+struct __hodor_func hodor_plib_funcs[1024];
 unsigned hodor_plib_funcs_count = 0;
 typedef int (*hodor_plib_init_t)(void);
 
@@ -167,14 +172,14 @@ static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
                PROT_READ | PROT_WRITE);
 
       for (i = 0; i < hodor_plib_funcs_count; ++i) {
-        char *func_text = dlsym(plib_handle, hodor_plib_funcs[i]);
+        char *func_text = dlsym(plib_handle, hodor_plib_funcs[i].sym);
         if (!func_text) {
           printf("libhodor: failed finding function %s from %s\n",
-                 hodor_plib_funcs[i], ent->path);
+                 hodor_plib_funcs[i].sym, ent->path);
           exit(-EINVAL);
         }
 
-        hodor_insert_trampoline(hodor_plib_funcs[i], func_text, tramp_text,
+        hodor_insert_trampoline(hodor_plib_funcs[i].sym, func_text, tramp_text,
                                 &tramp_idx);
       }
 
@@ -237,9 +242,44 @@ static int elf_symtab_callback(struct dl_phdr_info *info, size_t size,
               hodor_plib_init_func = malloc(strlen(str));
               strcpy(hodor_plib_init_func, str + 13);
             } else if (strstarts("__hodor_func_", str)) {
-              hodor_plib_funcs[hodor_plib_funcs_count] = malloc(strlen(str));
-              strcpy(hodor_plib_funcs[hodor_plib_funcs_count], str + 13);
+              hodor_plib_funcs[hodor_plib_funcs_count].sym =
+                  malloc(strlen(str));
+              strcpy(hodor_plib_funcs[hodor_plib_funcs_count].sym, str + 13);
               hodor_plib_funcs_count++;
+            }
+            unsigned len = strlen(str);
+            if (!len) break;
+            i += len + 1;
+          }
+
+          i = 1;
+          while (strtab) {
+            char *str = &strtab[i];
+            if (strstarts("__hodor_argc_", str)) {
+              bool found = false;
+              int j;
+              char *substr = malloc(strlen(str));
+              strcpy(substr, str + 13);
+
+              for (j = 0; j < hodor_plib_funcs_count; ++j) {
+                if (strstarts(hodor_plib_funcs[j].sym, substr)) {
+                  strcpy(substr, substr + strlen(hodor_plib_funcs[j].sym) + 1);
+                  hodor_plib_funcs[j].argc = atoi(substr); /* FIX IT */
+                  if (hodor_plib_funcs[j].argc > 6) {
+                    printf(
+                        "libhodor: function %s has more than 6 arguments "
+                        "(which we don't support yet!)\n",
+                        hodor_plib_funcs[j].sym);
+
+                    exit(-EINVAL);
+                  }
+                  found = true;
+                  break;
+                }
+              }
+
+              if (!found)
+                printf("libhodor: who's %s?, we'll ignore it.\n", str);
             }
             unsigned len = strlen(str);
             if (!len) break;

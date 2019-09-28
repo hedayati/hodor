@@ -31,4 +31,4 @@
  */
 #define HODOR_FUNC_EXPORT(sym, n)  \
   void __hodor_func_##sym(void){}; \
-  void __hodor_narg_##sym##_##n(void) {}
+  void __hodor_argc_##sym##_##n(void) {}
