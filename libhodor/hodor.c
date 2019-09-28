@@ -258,7 +258,9 @@ static int elf_symtab_callback(struct dl_phdr_info *info, size_t size,
 int hodor_init(void) {
   hodor_fd = open("/dev/hodor", O_RDWR);
   if (hodor_fd <= 0) {
-    printf("libhodor: failed to open Hodor device.\n");
+    printf(
+        "libhodor: failed to open Hodor device. Is the module (kern/hodor.ko) "
+        "loaded?\n");
     return -errno;
   }
 
@@ -274,7 +276,7 @@ int hodor_enter() {
   int pkey;
 
   if (hodor_fd <= 0) {
-    printf("libhodor: call hodor_init() before hodor_enter.\n");
+    printf("libhodor: call hodor_init() before hodor_enter().\n");
     return -EINVAL;
   }
 
@@ -310,7 +312,7 @@ int hodor_enter() {
    * executable pages will be intercepted by Hodor kernel module and vetted
    * (see. hodor_deny_signal() for how signals are vetted.)
    */
-  mprotect(*HODOR_REG, PAGE_SIZE, PROT_READ);
+  mprotect(*HODOR_REG, PAGE_SIZE, PROT_READ | PROT_WRITE); /* BUG */
   pkey_mprotect(TLSP->stack - PROTECTED_STACK_SIZE, PROTECTED_STACK_SIZE,
                 PROT_READ | PROT_WRITE, pkey);
   pkey_mprotect(TLSP, PAGE_SIZE, PROT_READ | PROT_WRITE, pkey);

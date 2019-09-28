@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <hodor.h>
 #include <stdio.h>
@@ -26,7 +27,11 @@ int main() {
   int ret = 0;
 
   ret = hodor_init();
+  assert(ret == 0);
   ret = hodor_enter();
+  assert(ret == 0);
+
+  printf("(look at dmesg).\n");
 
   wrpkru(rdpkru());
 
