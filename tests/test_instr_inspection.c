@@ -31,7 +31,7 @@ int main() {
   ret = hodor_enter();
   assert(ret == 0);
 
-  printf("(look at dmesg).\n");
+  printf("Segmentation fault is expected (look at dmesg).\n");
 
   wrpkru(rdpkru());
 

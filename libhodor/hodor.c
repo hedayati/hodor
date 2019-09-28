@@ -21,6 +21,7 @@
 #include "inst.h"
 
 int hodor_fd = -1;
+int pkey;
 struct hodor_config config;
 
 struct __hodor_func {
@@ -308,12 +309,18 @@ int hodor_init(void) {
 
   dune_procmap_iterate(&__setup_mappings_cb);
 
+  /*
+   * For now, let's hard-code the PKEY = 1 for the (single) protected library
+   * that we support.
+   */
+  pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
+  assert(pkey == 1);
+
   return ioctl(hodor_fd, HODOR_CONFIG, &config);
 }
 
 int hodor_enter() {
   int ret = 0;
-  int pkey;
 
   if (hodor_fd <= 0) {
     printf("libhodor: call hodor_init() before hodor_enter().\n");
@@ -338,13 +345,6 @@ int hodor_enter() {
   // point to the bottom of stack
   TLSP->stack += PROTECTED_STACK_SIZE;
   TLSU->stack = 0;
-
-  /*
-   * For now, let's hard-code the PKEY = 1 for the (single) protected library
-   * that we support.
-   */
-  pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
-  assert(pkey == 1);
 
   /*
    * We will never need to write to kernel TLS pointed to by *HODOR_REG. While
