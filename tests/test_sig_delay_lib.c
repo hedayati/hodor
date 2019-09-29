@@ -8,8 +8,7 @@
 int test_sig_delay_init(void) { return 0; }
 HODOR_INIT_FUNC(test_sig_delay_init);
 
-void test_sig_delay_loop(void) {
-  HODOR_FUNC_PROLOGUE;
+HODOR_FUNC_ATTR void test_sig_delay_loop(void) {
   while (1)
     ;
 }

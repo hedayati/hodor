@@ -41,19 +41,21 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   unsigned long i;
   unsigned long func_text_idx = 0;
 
-  for (i = 0; i < 32; ++i)
-    if (func_text[i] != '\x90') {
-      printf("libhodor: PLIB_FUNC_PROLOGUE missing from %s.\n", func_name);
-      exit(-EINVAL);
-    }
+  // 48 8d a4 24 00 00 00 00    lea    0x0(%rsp),%rsp
+  if (func_text[0] != '\x48' || func_text[1] != '\x8d' ||
+      func_text[2] != '\xa4' || func_text[3] != '\x24' ||
+      func_text[4] != '\x00' || func_text[5] != '\x00' ||
+      func_text[6] != '\x00' || func_text[7] != '\x00') {
+    printf("libhodor: HODOR_FUNC_ATTR missing from %s.\n", func_name);
+    exit(-EINVAL);
+  }
 
   /*
    * movabs $tramp, %rax
    * jmpq   *%rax
    */
-  x86_inst_movabs_rax(func_text, &func_text_idx,
+  x86_inst_jmpq_rel32(func_text, &func_text_idx,
                       (unsigned long)&tramp_text[*tramp_idx]);
-  x86_inst_jpmq_rax(func_text, &func_text_idx);
 
   /*
    * ********************** BOUNDARY_TRAMP *********************
@@ -96,7 +98,7 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
                               0x8);  // (%rax) points to protected_tls
   x86_inst_mov_atrax_rsp(tramp_text, tramp_idx);  // %rsp = protected_tls->stack
 
-  x86_inst_movabs_rax(tramp_text, tramp_idx, (unsigned long)func_text + 32);
+  x86_inst_movabs_rax(tramp_text, tramp_idx, (unsigned long)func_text + 8);
   x86_inst_callq_rax(tramp_text, tramp_idx);
 
   x86_inst_push_rax(tramp_text, tramp_idx);
@@ -175,8 +177,10 @@ static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
       for (i = 0; i < hodor_plib_funcs_count; ++i) {
         char *func_text = dlsym(plib_handle, hodor_plib_funcs[i].sym);
         if (!func_text) {
-          printf("libhodor: failed finding function %s from %s\n",
-                 hodor_plib_funcs[i].sym, ent->path);
+          printf(
+              "libhodor: failed finding function %s from %s (is it mangled? if "
+              "so, use extern \"C\")\n",
+              hodor_plib_funcs[i].sym, ent->path);
           exit(-EINVAL);
         }
 

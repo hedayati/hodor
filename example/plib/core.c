@@ -16,7 +16,7 @@ HODOR_INIT_FUNC(plib_init);
 
 /*
  * Hodor needs space at the beginning of the function to insert a
- * trampoline. HODOR_FUNC_PROLOGUE grantees it will have enough space. Also,
+ * trampoline. HODOR_FUNC_ATTR grantees it will have enough space. Also,
  * HODOR_FUNC_EXPORT tells Hodor loader to only call this function through
  * trampoline, plus the number of arguments that it takes. An attacker may still
  * call this function directly, but we guarantee that it would still be running
@@ -27,10 +27,7 @@ HODOR_INIT_FUNC(plib_init);
  * wrappers.
  */
 
-int plib_sum(int a, int b) {
-  HODOR_FUNC_PROLOGUE;
-  return a + b;
-}
+HODOR_FUNC_ATTR int plib_sum(int a, int b) { return a + b; }
 HODOR_FUNC_EXPORT(plib_sum, 2);
 
 /*

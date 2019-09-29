@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <sys/queue.h>
 
@@ -47,3 +51,7 @@ struct tls {
 
 extern int hodor_init(void);
 extern int hodor_enter(void);
+
+#ifdef __cplusplus
+}
+#endif
