@@ -126,6 +126,7 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_jmpq_rel32(tramp_text, tramp_idx, (unsigned long)tramp_text);
 }
 
+static char *tramp_text = NULL;
 static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
   if (ent->x) {
     unsigned long i;
@@ -133,8 +134,9 @@ static void __setup_mappings_cb(const struct dune_procmap_entry *ent) {
     unsigned index = config.region_count;
     bool is_plib = (hodor_plib_path && strcmp(ent->path, hodor_plib_path) == 0);
     void *plib_handle = NULL;
-    char *tramp_text = NULL;
     unsigned long tramp_idx = 0;
+
+    if (tramp_text == ent->begin) return;
 
     if (is_plib) {
       plib_handle = dlopen(ent->path, RTLD_LAZY);

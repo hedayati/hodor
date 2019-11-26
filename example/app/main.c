@@ -17,6 +17,8 @@ void *thread_func(void *ptr) {
   assert(hodor_enter() == 0);
 
   printf("hello world from child: %d\n", plib_sum(7, 8));
+
+  return NULL;
 }
 
 int main(int argc, char const *argv[]) {
@@ -47,3 +49,4 @@ int main(int argc, char const *argv[]) {
 
   return 0;
 }
+

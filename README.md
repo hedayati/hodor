@@ -18,11 +18,13 @@ git clone https://github.com/hedayati/hodor
 cd hodor/linux-4.15
 mkdir -p ~/builds
 make O=~/builds/linux-hodor allyesconfig
-cp ./hodor-pku-vm.config ~/builds/linux-hodor/.config
+cp ../hodor-pku-vm.config ~/builds/linux-hodor/.config
 cd ~/builds/linux-hodor
 make menuconfig
 make -jX bzImage modules
-sudo make install modules_install
+sudo make modules_install install
+sudo vim /boot/grub2/grub.cfg
+# add "nosmep nosmap" as boot parameters
 ```
 
 At this step you should be able to build the module, the library and tests:
