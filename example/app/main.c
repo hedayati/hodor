@@ -7,7 +7,9 @@
 
 #include <plib.h>
 
-void *thread_func(void *ptr) {
+#define N_THREAD_COUNT 128
+
+void *thread_func(void *arg) {
   /*
    * The very first thing each thread does must be calling hodor_enter().
    * Ideally we want it to be a part of pthread (or whatever thread library
@@ -16,14 +18,12 @@ void *thread_func(void *ptr) {
    */
   assert(hodor_enter() == 0);
 
-  printf("hello world from child: %d\n", plib_sum(7, 8));
-
-  return NULL;
+  printf("hello world from child %d: %d\n", (int)arg, plib_sum(7, 8));
 }
 
 int main(int argc, char const *argv[]) {
   int ret = 0;
-  pthread_t thread;
+  pthread_t thread[N_THREAD_COUNT];
 
   /*
    * Ideally a loader should take care of following two lines, but until
@@ -39,14 +39,18 @@ int main(int argc, char const *argv[]) {
   ret = hodor_enter();
   assert(ret == 0);
 
-  if (pthread_create(&thread, NULL, thread_func, NULL)) {
-    exit(-EINVAL);
+  for (int i = 0; i < N_THREAD_COUNT; ++i) {
+    if (pthread_create(&thread[i], NULL, thread_func, (void *)i)) {
+      exit(-EINVAL);
+    }
   }
 
   printf("hello world from parent: %d\n", plib_sum(6, 7));
 
-  if (pthread_join(thread, NULL)) exit(-EINVAL);
+  for (int i = 0; i < N_THREAD_COUNT; ++i) {
+    if (pthread_join(thread[i], NULL))
+      exit(-EINVAL);
+  }
 
   return 0;
 }
-

@@ -57,7 +57,7 @@ static int hodor_config(struct hodor_config *uconf) {
   }
 
   config = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                   MAP_ANONYMOUS | MAP_PRIVATE, 0);
+                   MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, 0);
   if (!config) {
     printk(KERN_ERR "Hodor: failed to allocate configuration page.\n");
 
@@ -70,7 +70,7 @@ static int hodor_config(struct hodor_config *uconf) {
    */
 
   tls = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                MAP_ANONYMOUS | MAP_PRIVATE, 0);
+                MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, 0);
   if (!tls) {
     printk(KERN_ERR "Hodor: failed to allocate TLS page.\n");
 
@@ -135,7 +135,7 @@ static int hodor_enter(void) {
 
   if (tls->tsk) {
     tls = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                  MAP_ANONYMOUS | MAP_PRIVATE, 0);
+                  MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, 0);
 
     /*
      * TODO: mark tls as read-only by the user.
@@ -145,9 +145,9 @@ static int hodor_enter(void) {
   }
   tls->tsk = tsk;
   tls->status_page_u = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                               MAP_ANONYMOUS | MAP_PRIVATE, 0);
+                               MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, 0);
   tls->status_page_p = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                               MAP_ANONYMOUS | MAP_PRIVATE, 0);
+                               MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, 0);
   timer_setup(&tls->sig_lockup_handler, sig_lockup_handler, 0);
 
   regs->hodor = tls;
@@ -168,20 +168,20 @@ static long hodor_dev_ioctl(struct file *filp, unsigned int ioctl,
   struct hodor_tls tls;
 
   switch (ioctl) {
-    case HODOR_CONFIG:
-      r = copy_from_user(&conf, (int __user *)arg, sizeof(struct hodor_config));
-      if (r) {
-        r = -EIO;
-        goto out;
-      }
+  case HODOR_CONFIG:
+    r = copy_from_user(&conf, (int __user *)arg, sizeof(struct hodor_config));
+    if (r) {
+      r = -EIO;
+      goto out;
+    }
 
-      r = hodor_config(&conf);
-      break;
-    case HODOR_ENTER:
-      r = hodor_enter();
-      break;
-    default:
-      return -ENOTTY;
+    r = hodor_config(&conf);
+    break;
+  case HODOR_ENTER:
+    r = hodor_enter();
+    break;
+  default:
+    return -ENOTTY;
   }
 
 out:
@@ -215,7 +215,8 @@ bool hodor_deny_signal(void) {
   struct hodor_tls *tls = regs->hodor;
   struct hodor_config *config = NULL;
 
-  if (!tls) return false;
+  if (!tls)
+    return false;
   config = tls->config;
 
   if (tls->sig_delayed) {
@@ -227,7 +228,8 @@ bool hodor_deny_signal(void) {
   }
 
   for (i = 0; i < config->region_count; ++i) {
-    if (!config->region_pkey[i] || !config->exit_tramp_va[i]) continue;
+    if (!config->region_pkey[i] || !config->exit_tramp_va[i])
+      continue;
     if (regs->ip >= config->region_begin_va[i] &&
         regs->ip <= config->region_begin_va[i] + config->region_len[i]) {
       printk(KERN_ALERT "Hodor: delaying signal ip: %lx region: %d\n", regs->ip,
@@ -256,7 +258,8 @@ bool hodor_deny_mmap(void *addr, size_t len, int prot, int flags,
   struct hodor_tls *tls = regs->hodor;
   struct hodor_config *config = NULL;
 
-  if (!tls) return false;
+  if (!tls)
+    return false;
   config = tls->config;
 
   for (i = 0; i < config->region_count; ++i) {
@@ -280,7 +283,8 @@ bool hodor_deny_mprotect(void *addr, size_t len, int prot, int pkey) {
   struct hodor_tls *tls = regs->hodor;
   struct hodor_config *config = NULL;
 
-  if (!tls) return false;
+  if (!tls)
+    return false;
   config = tls->config;
 
   for (i = 0; i < config->region_count; ++i) {
@@ -303,7 +307,8 @@ static int __init hodor_init(void) {
   printk(KERN_INFO "Hodor module loaded\n");
 
   r = misc_register(&hodor_dev);
-  if (r) printk(KERN_ERR "Hodor: misc device register failed\n");
+  if (r)
+    printk(KERN_ERR "Hodor: misc device register failed\n");
 
   opts.private = NULL;
   opts.deny_signal = hodor_deny_signal;
