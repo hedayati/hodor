@@ -50,6 +50,19 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
 	__visible;
 #define ZERO_PAGE(vaddr) ((void)(vaddr),virt_to_page(empty_zero_page))
 
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+extern unsigned long hodor_scratch_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_pte_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_pmd_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_pud_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+extern unsigned long hodor_p4d_page[PAGE_SIZE / sizeof(unsigned long)]
+	__visible;
+#endif
+
 extern spinlock_t pgd_lock;
 extern struct list_head pgd_list;
 
@@ -1263,6 +1276,24 @@ static inline void *ptr_clear_bit(void *ptr, int bit)
 	return (void *)__ptr;
 }
 
+#ifdef CONFIG_PERCPU_PGTBL
+static inline void *ptr_set_cpu(void *ptr, unsigned long cpu)
+{
+	unsigned long __ptr = (unsigned long)ptr;
+
+	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
+	__ptr |= (cpu << (PAGE_SHIFT + 1));
+	return (void *)__ptr;
+}
+static inline void *ptr_clear_cpu(void *ptr)
+{
+	unsigned long __ptr = (unsigned long)ptr;
+
+	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
+	return (void *)__ptr;
+}
+#endif
+
 static inline pgd_t *kernel_to_user_pgdp(pgd_t *pgdp)
 {
 	return ptr_set_bit(pgdp, PTI_PGTABLE_SWITCH_BIT);
@@ -1282,6 +1313,18 @@ static inline p4d_t *user_to_kernel_p4dp(p4d_t *p4dp)
 {
 	return ptr_clear_bit(p4dp, PTI_PGTABLE_SWITCH_BIT);
 }
+
+#ifdef CONFIG_PERCPU_PGTBL
+static inline pgd_t *kernel_to_cpu_pgdp(pgd_t *pgdp, unsigned long cpu)
+{
+	return ptr_set_cpu(pgdp, cpu);
+}
+
+static inline pgd_t *cpu_to_kernel_pgdp(pgd_t *pgdp)
+{
+	return ptr_clear_cpu(pgdp);
+}
+#endif
 #endif /* CONFIG_PAGE_TABLE_ISOLATION */
 
 /*
@@ -1296,13 +1339,53 @@ static inline p4d_t *user_to_kernel_p4dp(p4d_t *p4dp)
  */
 static inline void clone_pgd_range(pgd_t *dst, pgd_t *src, int count)
 {
+#ifdef CONFIG_PERCPU_PGTBL
+	unsigned long i;
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_cpu_pgdp(dst, i), kernel_to_cpu_pgdp(src, i),
+		       count * sizeof(pgd_t));
+#else
 	memcpy(dst, src, count * sizeof(pgd_t));
+#endif
 #ifdef CONFIG_PAGE_TABLE_ISOLATION
 	if (!static_cpu_has(X86_FEATURE_PTI))
 		return;
 	/* Clone the user space pgd as well */
+#ifdef CONFIG_PERCPU_PGTBL
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_user_pgdp(kernel_to_cpu_pgdp(dst, i)),
+		       kernel_to_user_pgdp(kernel_to_cpu_pgdp(src, i)),
+		       count * sizeof(pgd_t));
+#else
 	memcpy(kernel_to_user_pgdp(dst), kernel_to_user_pgdp(src),
 	       count * sizeof(pgd_t));
+#endif
+#endif
+}
+
+static inline void clone_pgd_range_early(pgd_t *dst, pgd_t *src, int count)
+{
+#ifdef CONFIG_PERCPU_PGTBL
+	unsigned long i;
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_cpu_pgdp(dst, i), cpu_to_kernel_pgdp(src),
+		       count * sizeof(pgd_t));
+#else
+	memcpy(dst, src, count * sizeof(pgd_t));
+#endif
+#ifdef CONFIG_PAGE_TABLE_ISOLATION
+	if (!static_cpu_has(X86_FEATURE_PTI))
+		return;
+	/* Clone the user space pgd as well */
+#ifdef CONFIG_PERCPU_PGTBL
+	for (i = 0; i < 64; ++i)
+		memcpy(kernel_to_user_pgdp(kernel_to_cpu_pgdp(dst, i)),
+		       kernel_to_user_pgdp(cpu_to_kernel_pgdp(src)),
+		       count * sizeof(pgd_t));
+#else
+	memcpy(kernel_to_user_pgdp(dst), kernel_to_user_pgdp(src),
+	       count * sizeof(pgd_t));
+#endif
 #endif
 }
 

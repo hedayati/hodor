@@ -112,6 +112,8 @@ enum fixed_addresses {
 	FIX_APEI_GHES_NMI,
 #endif
 
+	FIX_HODOR_SCRATCH,
+
 	__end_of_permanent_fixed_addresses,
 
 	/*

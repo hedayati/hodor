@@ -121,10 +121,19 @@ struct pgd_t;
 static inline unsigned long build_cr3(pgd_t *pgd, u16 asid)
 {
 	if (static_cpu_has(X86_FEATURE_PCID)) {
+#ifdef CONFIG_PERCPU_PGTBL
+		return __sme_pa(kernel_to_cpu_pgdp(pgd, smp_processor_id())) |
+		       kern_pcid(asid);
+#else
 		return __sme_pa(pgd) | kern_pcid(asid);
+#endif
 	} else {
 		VM_WARN_ON_ONCE(asid != 0);
+#ifdef CONFIG_PERCPU_PGTBL
+		return __sme_pa(kernel_to_cpu_pgdp(pgd, smp_processor_id()));
+#else
 		return __sme_pa(pgd);
+#endif
 	}
 }
 
@@ -137,7 +146,12 @@ static inline unsigned long build_cr3_noflush(pgd_t *pgd, u16 asid)
 	 * boot because all CPU's the have same capabilities:
 	 */
 	VM_WARN_ON_ONCE(!boot_cpu_has(X86_FEATURE_PCID));
+#ifdef CONFIG_PERCPU_PGTBL
+	return __sme_pa(kernel_to_cpu_pgdp(pgd, smp_processor_id())) |
+	       kern_pcid(asid) | CR3_NOFLUSH;
+#else
 	return __sme_pa(pgd) | kern_pcid(asid) | CR3_NOFLUSH;
+#endif
 }
 
 #ifdef CONFIG_PARAVIRT

@@ -1817,6 +1817,12 @@ void cpu_init(void)
 	struct tss_struct *t;
 	int i;
 
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long *hodor_addr = 0xffffffffff578000;
+	printk(KERN_INFO "cpu_init cpu:%d hodor:%d\n", cpu, *hodor_addr);
+	*hodor_addr = cpu;
+#endif
+
 	wait_for_master_cpu(cpu);
 
 	if (cpu)

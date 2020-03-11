@@ -709,6 +709,21 @@ config GUP_BENCHMARK
 
 	  See tools/testing/selftests/vm/gup_benchmark.c
 
+config PERCPU_PGTBL
+	bool "Enable percpu Page Tables"
+	default n
+	help
+	  This feature enables percpu page tables for both kernel and user-space.
+	  Maximum number of CPUs supported is 64.
+
+config PERCPU_SCRATCH_PAGE
+	bool "Enable percpu Scratch Page"
+	default n
+	depends on PERCPU_PGTBL
+	help
+	  This feature enables percpu scratch page for kernel. The page will
+	  be at address 0xffffffffff578000.
+
 config GUP_GET_PTE_LOW_HIGH
 	bool
 

@@ -424,6 +424,9 @@ static void __init copy_bootdata(char *real_mode_data)
 
 asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
 {
+#ifdef CONFIG_PERCPU_PGTBL
+	int i;
+#endif
 	/*
 	 * Build-time sanity checks on the kernel image and module
 	 * area mappings. (these are purely build-time and produce no code)
@@ -445,7 +448,12 @@ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
 
 	clear_bss();
 
+#ifdef CONFIG_PERCPU_PGTBL
+	for (i = 0; i < 128; ++i)
+		clear_page(&init_top_pgt[i * 512]);
+#else
 	clear_page(init_top_pgt);
+#endif
 
 	/*
 	 * SME support may update early_pmd_flags to include the memory
@@ -467,6 +475,11 @@ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
 
 	/* set init_top_pgt kernel high mapping*/
 	init_top_pgt[511] = early_top_pgt[511];
+
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	__set_fixmap(FIX_HODOR_SCRATCH, __pa_symbol(hodor_scratch_page), PAGE_SHARED);
+	printk(KERN_INFO "FIX_HODOR_SCRATCH: 0x%lx cr3: 0x%lx\n", __fix_to_virt(FIX_HODOR_SCRATCH), read_cr3_pa());
+#endif
 
 	x86_64_start_reservations(real_mode_data);
 }

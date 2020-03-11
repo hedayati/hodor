@@ -356,11 +356,18 @@ GLOBAL(name)
  *
  * This ensures PGDs are 8k long:
  */
+#ifdef CONFIG_PERCPU_PGTBL
+#define PTI_USER_PGD_FILL	127*512
+#define NEXT_PGD_PAGE(name) \
+	.balign 128 * PAGE_SIZE; \
+GLOBAL(name)
+#else
 #define PTI_USER_PGD_FILL	512
 /* This ensures they are 8k-aligned: */
 #define NEXT_PGD_PAGE(name) \
 	.balign 2 * PAGE_SIZE; \
 GLOBAL(name)
+#endif
 #else
 #define NEXT_PGD_PAGE(name) NEXT_PAGE(name)
 #define PTI_USER_PGD_FILL	0
@@ -455,9 +462,17 @@ NEXT_PAGE(level2_fixmap_pgt)
 	.fill	4,8,0
 
 NEXT_PAGE(level1_fixmap_pgt)
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	.rept (FIXMAP_PMD_NUM)
+	.rept (512)
+	.quad	hodor_scratch_page - __START_KERNEL_map + _PAGE_TABLE_NOENC
+	.endr
+	.endr
+#else
 	.rept (FIXMAP_PMD_NUM)
 	.fill	512,8,0
 	.endr
+#endif
 
 #undef PMDS
 
@@ -481,3 +496,24 @@ NEXT_PAGE(empty_zero_page)
 	.skip PAGE_SIZE
 EXPORT_SYMBOL(empty_zero_page)
 
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+NEXT_PAGE(hodor_scratch_page)
+	.skip 64*PAGE_SIZE
+EXPORT_SYMBOL(hodor_scratch_page)
+
+NEXT_PAGE(hodor_pte_page)
+	.skip 128*PAGE_SIZE
+EXPORT_SYMBOL(hodor_pte_page)
+
+NEXT_PAGE(hodor_pmd_page)
+	.skip 128*PAGE_SIZE
+EXPORT_SYMBOL(hodor_pmd_page)
+
+NEXT_PAGE(hodor_pud_page)
+	.skip 128*PAGE_SIZE
+EXPORT_SYMBOL(hodor_pud_page)
+
+NEXT_PAGE(hodor_p4d_page)
+	.skip 128*PAGE_SIZE
+EXPORT_SYMBOL(hodor_p4d_page)
+#endif

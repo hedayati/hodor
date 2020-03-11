@@ -29,7 +29,7 @@ extern pgd_t init_top_pgt[];
 #define swapper_pg_dir init_top_pgt
 
 extern void paging_init(void);
-static inline void sync_initial_page_table(void) { }
+void sync_initial_page_table(void);
 
 #define pte_ERROR(e)					\
 	pr_err("%s:%d: bad pte %p(%016lx)\n",		\
@@ -58,7 +58,22 @@ void set_pte_vaddr_pud(pud_t *pud_page, unsigned long vaddr, pte_t new_pte);
 
 static inline void native_set_pte(pte_t *ptep, pte_t pte)
 {
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long hodor_pte_page_addr = __va(__pa_symbol(hodor_pte_page));
+	if (hodor_pte_page_addr <= ptep &&
+	    ptep < hodor_pte_page_addr + 64 * PAGE_SIZE) {
+		int i;
+		for (i = 0; i < 64; ++i) {
+			unsigned long hodor_pte_addr =
+				hodor_pte_page_addr + i * PAGE_SIZE;
+			hodor_pte_addr |= ((unsigned long)ptep & ~PAGE_MASK);
+			WRITE_ONCE(*((pte_t *)hodor_pte_addr), pte);
+		}
+	} else
+		WRITE_ONCE(*ptep, pte);
+#else
 	WRITE_ONCE(*ptep, pte);
+#endif
 }
 
 static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
@@ -74,7 +89,22 @@ static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)
 
 static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long hodor_pmd_page_addr = __va(__pa_symbol(hodor_pmd_page));
+	if (hodor_pmd_page_addr <= pmdp &&
+	    pmdp < hodor_pmd_page_addr + 64 * PAGE_SIZE) {
+		int i;
+		for (i = 0; i < 64; ++i) {
+			unsigned long hodor_pmd_addr =
+				hodor_pmd_page_addr + i * PAGE_SIZE;
+			hodor_pmd_addr |= ((unsigned long)pmdp & ~PAGE_MASK);
+			WRITE_ONCE(*((pmd_t *)hodor_pmd_page_addr), pmd);
+		}
+	} else
+		WRITE_ONCE(*pmdp, pmd);
+#else
 	WRITE_ONCE(*pmdp, pmd);
+#endif
 }
 
 static inline void native_pmd_clear(pmd_t *pmd)
@@ -110,7 +140,22 @@ static inline pmd_t native_pmdp_get_and_clear(pmd_t *xp)
 
 static inline void native_set_pud(pud_t *pudp, pud_t pud)
 {
+#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+	unsigned long hodor_pud_page_addr = __va(__pa_symbol(hodor_pud_page));
+	if (hodor_pud_page_addr <= pudp &&
+	    pudp < hodor_pud_page_addr + 64 * PAGE_SIZE) {
+		int i;
+		for (i = 0; i < 64; ++i) {
+			unsigned long hodor_pud_addr =
+				hodor_pud_page_addr + i * PAGE_SIZE;
+			hodor_pud_addr |= ((unsigned long)pudp & ~PAGE_MASK);
+			WRITE_ONCE(*((pud_t *)hodor_pud_addr), pud);
+		}
+	} else
+		WRITE_ONCE(*pudp, pud);
+#else
 	WRITE_ONCE(*pudp, pud);
+#endif
 }
 
 static inline void native_pud_clear(pud_t *pud)
