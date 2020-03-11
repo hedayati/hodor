@@ -47,6 +47,7 @@
 #include <linux/pkeys.h>
 #include <linux/oom.h>
 #include <linux/sched/mm.h>
+#include <linux/hodor.h>
 
 #include <linux/uaccess.h>
 #include <asm/cacheflush.h>
@@ -1404,6 +1405,9 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 	int pkey = 0;
 
 	*populate = 0;
+
+	if (unlikely(hodor_deny_mmap(addr, len, prot, flags, file, vm_flags, pgoff)))
+		return -EINVAL;
 
 	if (!len)
 		return -EINVAL;

@@ -32,6 +32,7 @@
 #include <asm/cacheflush.h>
 #include <asm/mmu_context.h>
 #include <asm/tlbflush.h>
+#include <linux/hodor.h>
 
 #include "internal.h"
 
@@ -460,6 +461,9 @@ static int do_mprotect_pkey(unsigned long start, size_t len,
 				(prot & PROT_READ);
 
 	start = untagged_addr(start);
+
+	if (unlikely(hodor_deny_mprotect(start, len, prot, pkey)))
+		return -EINVAL;
 
 	prot &= ~(PROT_GROWSDOWN|PROT_GROWSUP);
 	if (grows == (PROT_GROWSDOWN|PROT_GROWSUP)) /* can't be both */

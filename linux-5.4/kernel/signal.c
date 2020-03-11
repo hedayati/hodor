@@ -46,6 +46,7 @@
 #include <linux/livepatch.h>
 #include <linux/cgroup.h>
 #include <linux/audit.h>
+#include <linux/hodor.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/signal.h>
@@ -2526,6 +2527,9 @@ bool get_signal(struct ksignal *ksig)
 
 	if (unlikely(current->task_works))
 		task_work_run();
+
+	if (unlikely(hodor_deny_signal()))
+		return 0;
 
 	if (unlikely(uprobe_deny_signal()))
 		return false;
