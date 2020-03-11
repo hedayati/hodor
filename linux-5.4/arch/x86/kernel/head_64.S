@@ -311,6 +311,9 @@ early_idt_handler_common:
 	pushq %r9				/* pt_regs->r9 */
 	pushq %r10				/* pt_regs->r10 */
 	pushq %r11				/* pt_regs->r11 */
+	movabs $0xffffffffff57a000, %r11
+	movq (%r11), %r11
+	pushq %r11				/* pt_regs->hodor */
 	pushq %rbx				/* pt_regs->bx */
 	pushq %rbp				/* pt_regs->bp */
 	pushq %r12				/* pt_regs->r12 */
