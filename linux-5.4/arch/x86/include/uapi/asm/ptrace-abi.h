@@ -59,10 +59,6 @@
 #define EFLAGS 152
 #define RSP 160
 #define SS 168
-#endif /* __ASSEMBLY__ */
-
-/* top of stack page */
-#define FRAME_SIZE 176
 #else
 #define R11 48
 #define R10 56
@@ -84,9 +80,13 @@
 #define EFLAGS 144
 #define RSP 152
 #define SS 160
+#endif
 #endif /* __ASSEMBLY__ */
 
 /* top of stack page */
+#ifdef CONFIG_HODOR_REG
+#define FRAME_SIZE 176
+#else
 #define FRAME_SIZE 168
 #endif
 
