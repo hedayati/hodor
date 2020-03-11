@@ -37,6 +37,7 @@
 #define RBP 32
 #define RBX 40
 /* These regs are callee-clobbered. Always saved on kernel entry. */
+#ifdef CONFIG_HODOR_REG
 #define HODOR 48
 #define R11 56
 #define R10 64
@@ -62,6 +63,32 @@
 
 /* top of stack page */
 #define FRAME_SIZE 176
+#else
+#define R11 48
+#define R10 56
+#define R9 64
+#define R8 72
+#define RAX 80
+#define RCX 88
+#define RDX 96
+#define RSI 104
+#define RDI 112
+/*
+ * On syscall entry, this is syscall#. On CPU exception, this is error code.
+ * On hw interrupt, it's IRQ number:
+ */
+#define ORIG_RAX 120
+/* Return frame for iretq */
+#define RIP 128
+#define CS 136
+#define EFLAGS 144
+#define RSP 152
+#define SS 160
+#endif /* __ASSEMBLY__ */
+
+/* top of stack page */
+#define FRAME_SIZE 168
+#endif
 
 #endif /* !__i386__ */
 

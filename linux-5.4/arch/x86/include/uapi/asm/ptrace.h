@@ -53,7 +53,9 @@ struct pt_regs {
 	unsigned long rbp;
 	unsigned long rbx;
 /* These regs are callee-clobbered. Always saved on kernel entry. */
+#ifdef CONFIG_HODOR_REG
 	unsigned long hodor;
+#endif
 	unsigned long r11;
 	unsigned long r10;
 	unsigned long r9;

@@ -722,7 +722,15 @@ config PERCPU_SCRATCH_PAGE
 	depends on PERCPU_PGTBL
 	help
 	  This feature enables percpu scratch page for kernel. The page will
-	  be at address 0xffffffffff578000.
+	  be at address 0xffffffffff57a000.
+
+config HODOR_REG
+	bool "Enable Hodor Virtual Register"
+	default n
+	depends on PERCPU_SCRATCH_PAGE
+	help
+	  This feature enables hodor virtual register. It will be at address
+	  0xffffffffff57aff0.
 
 config GUP_GET_PTE_LOW_HIGH
 	bool

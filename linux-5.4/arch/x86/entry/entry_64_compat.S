@@ -92,7 +92,9 @@ ENTRY(entry_SYSENTER_compat)
 	xorl	%r10d, %r10d		/* nospec   r10 */
 	pushq   $0			/* pt_regs->r11 = 0 */
 	xorl	%r11d, %r11d		/* nospec   r11 */
+#ifdef CONFIG_HODOR_REG
 	pushq   $0			/* pt_regs->hodor = 0 */
+#endif
 	pushq   %rbx                    /* pt_regs->rbx */
 	xorl	%ebx, %ebx		/* nospec   rbx */
 	pushq   %rbp                    /* pt_regs->rbp (will be overwritten) */
@@ -235,7 +237,9 @@ GLOBAL(entry_SYSCALL_compat_after_hwframe)
 	xorl	%r10d, %r10d		/* nospec   r10 */
 	pushq   $0			/* pt_regs->r11 = 0 */
 	xorl	%r11d, %r11d		/* nospec   r11 */
+#ifdef CONFIG_HODOR_REG
 	pushq   $0			/* pt_regs->hodor = 0 */
+#endif
 	pushq   %rbx                    /* pt_regs->rbx */
 	xorl	%ebx, %ebx		/* nospec   rbx */
 	pushq   %rbp                    /* pt_regs->rbp (will be overwritten) */
@@ -391,9 +395,11 @@ ENTRY(entry_INT80_compat)
 	xorl	%r10d, %r10d		/* nospec   r10 */
 	pushq   %r11			/* pt_regs->r11 */
 	xorl	%r11d, %r11d		/* nospec   r11 */
+#ifdef CONFIG_HODOR_REG
 	movabs	$0xffffffffff57aff0, %r11
 	movq	(%r11), %r11
 	pushq	%r11			/* pt_regs->hodor */
+#endif
 	pushq   %rbx                    /* pt_regs->rbx */
 	xorl	%ebx, %ebx		/* nospec   rbx */
 	pushq   %rbp                    /* pt_regs->rbp */
