@@ -14,8 +14,8 @@ struct hodor_tls;
 #define HODOR_CONFIG _IOR(HODOR_MINOR, 0x01, struct hodor_config)
 #define HODOR_ENTER _IO(HODOR_MINOR, 0x02)
 
-#define HODOR_SCRATCH_AREA ((unsigned long *)0xffffffffff578000)
-#define HODOR_REG ((unsigned long *)0xffffffffff578ff0)
+#define HODOR_SCRATCH_AREA ((unsigned long *)0xffffffffff57a000)
+#define HODOR_REG ((unsigned long *)0xffffffffff57aff0)
 
 struct hodor_config {
   unsigned int region_count;

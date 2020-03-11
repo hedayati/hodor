@@ -127,7 +127,7 @@ For 32-bit we have the following conventions - kernel is built with
 	xorl	%r10d, %r10d	/* nospec   r10 */
 	pushq   %r11		/* pt_regs->r11 */
 	xorl	%r11d, %r11d	/* nospec   r11*/
-	movabs	$0xffffffffff57a000, %r11
+	movabs	$0xffffffffff57aff0, %r11
 	movq	(%r11), %r11
 	pushq	%r11		/* pt_regs->hodor */
 	pushq	%rbx		/* pt_regs->rbx */
@@ -156,7 +156,7 @@ For 32-bit we have the following conventions - kernel is built with
 	popq %rbp
 	popq %rbx
 	popq %r10		/* HODOR */
-	movabs $0xffffffffff57a000, %r9
+	movabs $0xffffffffff57aff0, %r9
 	movq %r10, (%r9)
 	.if \skip_r11rcx
 	popq %rsi

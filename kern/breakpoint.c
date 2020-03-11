@@ -8,7 +8,6 @@
 #include <linux/perf_event.h>
 #include <linux/ptrace.h>
 #include <linux/sched/task_stack.h>
-#include <linux/tlbpoison.h>
 
 #include <asm/cacheflush.h>
 #include <asm/debugreg.h>
@@ -57,18 +56,11 @@ static void inspection_br_handler(struct perf_event *bp,
     char *text = (char *)config->inspect_begin_va[i];
     if (text[0] == '\x0F' && text[1] == '\x01' && text[2] == '\xEF') {
       if (regs->ax != 0x55555554) {
-        siginfo_t info;
-
         printk(KERN_ALERT
                "Hodor: execution of wrpkru %lx detected. Terminating...\n",
                regs->ax);
-
-        info.si_signo = SIGSEGV;
-        info.si_errno = 0;
-        info.si_code = SEGV_PKUERR;
-        info.si_addr = (void __user *)config->inspect_begin_va[i];
-        info.si_pkey = regs->ax;
-        send_sig_info(SIGSEGV, &info, tsk);
+	
+	send_sig_info(SIGSEGV, SEND_SIG_PRIV, tsk);
         return;
       } else {
         printk(KERN_INFO "Hodor: benign execution of wrpkru %lx detected.\n",
