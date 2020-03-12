@@ -709,9 +709,17 @@ config GUP_BENCHMARK
 
 	  See tools/testing/selftests/vm/gup_benchmark.c
 
+config HODOR_EMULATE
+	bool "Emulate Hodor Scratch Page"
+	default n
+	depends on !PERCPU_PGTBL
+	help
+	  This feature emulates Hodor features.
+
 config PERCPU_PGTBL
 	bool "Enable percpu Page Tables"
 	default n
+	depends on !HODOR_EMULATE
 	help
 	  This feature enables percpu page tables for both kernel and user-space.
 	  Maximum number of CPUs supported is 64.

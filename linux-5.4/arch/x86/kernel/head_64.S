@@ -467,7 +467,7 @@ NEXT_PAGE(level2_fixmap_pgt)
 	.fill	4,8,0
 
 NEXT_PAGE(level1_fixmap_pgt)
-#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+#if defined(CONFIG_PERCPU_SCRATCH_PAGE) || defined(CONFIG_HODOR_EMULATE)
 	.rept (FIXMAP_PMD_NUM)
 	.rept (512)
 	.quad	hodor_scratch_page - __START_KERNEL_map + _PAGE_TABLE_NOENC
@@ -501,7 +501,7 @@ NEXT_PAGE(empty_zero_page)
 	.skip PAGE_SIZE
 EXPORT_SYMBOL(empty_zero_page)
 
-#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+#if defined(CONFIG_PERCPU_SCRATCH_PAGE) || defined(CONFIG_HODOR_EMULATE)
 NEXT_PAGE(hodor_scratch_page)
 	.skip 64*PAGE_SIZE
 EXPORT_SYMBOL(hodor_scratch_page)

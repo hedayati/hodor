@@ -50,7 +50,7 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)]
 	__visible;
 #define ZERO_PAGE(vaddr) ((void)(vaddr),virt_to_page(empty_zero_page))
 
-#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+#if defined(CONFIG_PERCPU_SCRATCH_PAGE) || defined(CONFIG_HODOR_EMULATE)
 extern unsigned long hodor_scratch_page[PAGE_SIZE / sizeof(unsigned long)]
 	__visible;
 extern unsigned long hodor_pte_page[PAGE_SIZE / sizeof(unsigned long)]

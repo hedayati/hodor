@@ -476,7 +476,7 @@ asmlinkage __visible void __init x86_64_start_kernel(char * real_mode_data)
 	/* set init_top_pgt kernel high mapping*/
 	init_top_pgt[511] = early_top_pgt[511];
 
-#ifdef CONFIG_PERCPU_SCRATCH_PAGE
+#if defined(CONFIG_PERCPU_SCRATCH_PAGE) || defined(CONFIG_HODOR_EMULATE)
 	__set_fixmap(FIX_HODOR_SCRATCH, __pa_symbol(hodor_scratch_page), PAGE_SHARED);
 	printk(KERN_INFO "FIX_HODOR_SCRATCH: 0x%lx cr3: 0x%lx\n", __fix_to_virt(FIX_HODOR_SCRATCH), read_cr3_pa());
 #endif
