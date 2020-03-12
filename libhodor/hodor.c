@@ -78,6 +78,9 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
                          tramp_idx);  // (%rax) points to unprotected_tls
   x86_inst_mov_rsp_atrax(tramp_text,
                          tramp_idx);  // unprotected_tls->stack = %rsp
+#else
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
 #endif
   x86_inst_push_rcx(tramp_text, tramp_idx);
   x86_inst_push_rdx(tramp_text, tramp_idx);
@@ -97,6 +100,9 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_mov_atrax_rax_off8(tramp_text, tramp_idx,
                               0x8);  // (%rax) points to protected_tls
   x86_inst_mov_atrax_rsp(tramp_text, tramp_idx);  // %rsp = protected_tls->stack
+#else
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
 #endif
   x86_inst_movabs_rax(tramp_text, tramp_idx, (unsigned long)func_text + 8);
   x86_inst_callq_rax(tramp_text, tramp_idx);
@@ -115,14 +121,17 @@ static void hodor_insert_trampoline(char *func_name, char *func_text,
   x86_inst_pop_rdx(tramp_text, tramp_idx);
   x86_inst_pop_rcx(tramp_text, tramp_idx);
   x86_inst_pop_rax(tramp_text, tramp_idx);
-
+#ifndef HODOR_EMULATE
   x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
   x86_inst_mov_atr10_r10(tramp_text, tramp_idx);  // (%rax) points to kernel_tls
   x86_inst_mov_atr10_r10(tramp_text,
                          tramp_idx);  // (%rax) points to unprotected_tls
   x86_inst_mov_atr10_rsp(tramp_text,
                          tramp_idx);  // %rsp = unprotected_tls->stack
-
+#else
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
+  x86_inst_movabs_r10(tramp_text, tramp_idx, HODOR_REG);
+#endif
   x86_inst_jmpq_rel32(tramp_text, tramp_idx, (unsigned long)tramp_text);
 }
 
