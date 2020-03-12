@@ -8,6 +8,8 @@
 
 #define HODOR_MINOR 233
 
+#define HODOR_EMULATE
+
 struct hodor_config;
 struct hodor_tls;
 

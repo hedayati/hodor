@@ -30,6 +30,10 @@ static int hodor_config(struct hodor_config *uconf) {
   struct hodor_config *config = NULL;
   struct hodor_tls *tls = regs->hodor;
 
+#ifdef HODOR_EMULATE
+  return 0;
+#endif
+
   if (tls) {
     printk(KERN_ERR "Hodor: session already configured.\n");
 
@@ -97,6 +101,10 @@ static int hodor_enter(void) {
   struct mm_struct *mm = tsk->mm;
   struct hodor_config *config = NULL;
   struct hodor_tls *tls = regs->hodor;
+
+#ifdef HODOR_EMULATE
+  return 0;
+#endif
 
   if (!tls) {
     printk(KERN_ERR "Hodor: session should be configured before entering.\n");
@@ -196,6 +204,10 @@ bool hodor_deny_signal(void) {
   struct hodor_tls *tls = regs->hodor;
   struct hodor_config *config = NULL;
 
+#ifdef HODOR_EMULATE
+  return false;
+#endif
+
   if (!tls)
     return false;
   config = tls->config;
@@ -239,6 +251,10 @@ bool hodor_deny_mmap(void *addr, size_t len, int prot, int flags,
   struct hodor_tls *tls = regs->hodor;
   struct hodor_config *config = NULL;
 
+#ifdef HODOR_EMULATE
+  return false;
+#endif
+
   if (!tls)
     return false;
   config = tls->config;
@@ -263,6 +279,10 @@ bool hodor_deny_mprotect(void *addr, size_t len, int prot, int pkey) {
   struct pt_regs *regs = task_pt_regs(tsk);
   struct hodor_tls *tls = regs->hodor;
   struct hodor_config *config = NULL;
+
+#ifdef HODOR_EMULATE
+  return false;
+#endif
 
   if (!tls)
     return false;
