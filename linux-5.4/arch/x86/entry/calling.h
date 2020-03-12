@@ -153,8 +153,10 @@ For 32-bit we have the following conventions - kernel is built with
 	pushq   %r11		/* pt_regs->r11 */
 	xorl	%r11d, %r11d	/* nospec   r11*/
 #ifdef CONFIG_HODOR_REG
+#ifndef CONFIG_HODOR_EMULATE
 	movabs	$0xffffffffff57aff0, %r11
 	movq	(%r11), %r11
+#endif
 	pushq	%r11		/* pt_regs->hodor */
 #endif
 	pushq	%rbx		/* pt_regs->rbx */
@@ -184,8 +186,10 @@ For 32-bit we have the following conventions - kernel is built with
 	popq %rbx
 #ifdef CONFIG_HODOR_REG
 	popq %r10		/* HODOR */
+#ifndef CONFIG_HODOR_EMULATE
 	movabs $0xffffffffff57aff0, %r9
 	movq %r10, (%r9)
+#endif
 #endif
 	.if \skip_r11rcx
 	popq %rsi

@@ -312,8 +312,10 @@ early_idt_handler_common:
 	pushq %r10				/* pt_regs->r10 */
 	pushq %r11				/* pt_regs->r11 */
 #ifdef CONFIG_HODOR_REG
+#ifndef CONFIG_HODOR_EMULATE
 	movabs $0xffffffffff57aff0, %r11
 	movq (%r11), %r11
+#endif
 	pushq %r11				/* pt_regs->hodor */
 #endif
 	pushq %rbx				/* pt_regs->bx */

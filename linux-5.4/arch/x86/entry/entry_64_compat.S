@@ -396,8 +396,10 @@ ENTRY(entry_INT80_compat)
 	pushq   %r11			/* pt_regs->r11 */
 	xorl	%r11d, %r11d		/* nospec   r11 */
 #ifdef CONFIG_HODOR_REG
+#ifndef CONFIG_HODOR_EMULATE
 	movabs	$0xffffffffff57aff0, %r11
 	movq	(%r11), %r11
+#endif
 	pushq	%r11			/* pt_regs->hodor */
 #endif
 	pushq   %rbx                    /* pt_regs->rbx */
