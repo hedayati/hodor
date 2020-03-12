@@ -712,7 +712,6 @@ config GUP_BENCHMARK
 config HODOR_EMULATE
 	bool "Emulate Hodor Scratch Page"
 	default n
-	depends on !PERCPU_PGTBL
 	help
 	  This feature emulates Hodor features.
 
@@ -735,7 +734,7 @@ config PERCPU_SCRATCH_PAGE
 config HODOR_REG
 	bool "Enable Hodor Virtual Register"
 	default n
-	depends on PERCPU_SCRATCH_PAGE
+	depends on PERCPU_SCRATCH_PAGE || HODOR_EMULATE
 	help
 	  This feature enables hodor virtual register. It will be at address
 	  0xffffffffff57aff0.
