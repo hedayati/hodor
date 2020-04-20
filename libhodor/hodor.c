@@ -311,16 +311,16 @@ int hodor_init(void) {
     return -errno;
   }
 
-  dl_iterate_phdr(elf_symtab_callback, NULL);
-
-  dune_procmap_iterate(&__setup_mappings_cb);
-
   /*
    * For now, let's hard-code the PKEY = 1 for the (single) protected library
    * that we support.
    */
   pkey = pkey_alloc(0, PKEY_DISABLE_ACCESS);
   assert(pkey == 1);
+
+  dl_iterate_phdr(elf_symtab_callback, NULL);
+
+  dune_procmap_iterate(&__setup_mappings_cb);
 
   return ioctl(hodor_fd, HODOR_CONFIG, &config);
 }
