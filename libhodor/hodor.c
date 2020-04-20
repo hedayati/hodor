@@ -299,6 +299,7 @@ static int elf_symtab_callback(struct dl_phdr_info *info, size_t size,
       }
     }
   }
+
   return 0;
 }
 
@@ -319,6 +320,9 @@ int hodor_init(void) {
   assert(pkey == 1);
 
   dl_iterate_phdr(elf_symtab_callback, NULL);
+
+  if (!hodor_plib_path)
+    printf("libhodor: we didn't find a protected library!\n");
 
   dune_procmap_iterate(&__setup_mappings_cb);
 
