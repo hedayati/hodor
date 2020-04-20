@@ -38,7 +38,7 @@ int kv_init(void) {
    * Mark the private heap with PKEY = 1. We do it at the end since kv_init() is
    * called during load with PKRU = 0x55555554.
    */
-  pkey_mprotect(heap_pages, HEAP_SIZE, PROT_READ | PROT_WRITE, 1);
+  assert(0 == pkey_mprotect(heap_pages, HEAP_SIZE, PROT_READ | PROT_WRITE, 1));
   return 0;
 }
 HODOR_INIT_FUNC(kv_init);
