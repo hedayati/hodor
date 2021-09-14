@@ -53,6 +53,26 @@ void sync_initial_page_table(void);
 
 struct mm_struct;
 
+#ifdef CONFIG_PERCPU_PGTBL
+
+static inline pgd_t *cpu_to_kernel_pgdp(pgd_t *pgdp)
+{
+	uintptr_t __ptr = (uintptr_t)pgdp;
+
+	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
+	return (pgd_t*)__ptr;
+}
+
+static inline pgd_t *kernel_to_cpu_pgdp(pgd_t *pgdp, unsigned long cpu)
+{
+	uintptr_t __ptr = (uintptr_t)cpu_to_kernel_pgdp(pgdp);
+
+	__ptr |= (cpu << (PAGE_SHIFT + 1));
+	return (pgd_t*)__ptr;
+}
+
+#endif
+
 void set_pte_vaddr_p4d(p4d_t *p4d_page, unsigned long vaddr, pte_t new_pte);
 void set_pte_vaddr_pud(pud_t *pud_page, unsigned long vaddr, pte_t new_pte);
 
@@ -180,6 +200,9 @@ static inline pud_t native_pudp_get_and_clear(pud_t *xp)
 
 static inline void native_set_p4d(p4d_t *p4dp, p4d_t p4d)
 {
+#ifdef CONFIG_PERCPU_PGTBL
+	int i;
+#endif
 	pgd_t pgd;
 
 	if (pgtable_l5_enabled() || !IS_ENABLED(CONFIG_PAGE_TABLE_ISOLATION)) {
@@ -189,7 +212,15 @@ static inline void native_set_p4d(p4d_t *p4dp, p4d_t p4d)
 
 	pgd = native_make_pgd(native_p4d_val(p4d));
 	pgd = pti_set_user_pgtbl((pgd_t *)p4dp, pgd);
-	WRITE_ONCE(*p4dp, native_make_p4d(native_pgd_val(pgd)));
+	p4d = native_make_p4d(native_pgd_val(pgd));
+#ifdef CONFIG_PERCPU_PGTBL
+	p4dp = (p4d_t*)cpu_to_kernel_pgdp((pgd_t*)p4dp);
+	for (i = 0; i < 64; ++i) {
+		WRITE_ONCE(*(p4d_t*)kernel_to_cpu_pgdp((pgd_t*)p4dp, i), p4d);
+	}
+#else
+	WRITE_ONCE(*p4dp, p4d);
+#endif
 }
 
 static inline void native_p4d_clear(p4d_t *p4d)
@@ -199,7 +230,19 @@ static inline void native_p4d_clear(p4d_t *p4d)
 
 static inline void native_set_pgd(pgd_t *pgdp, pgd_t pgd)
 {
-	WRITE_ONCE(*pgdp, pti_set_user_pgtbl(pgdp, pgd));
+#ifdef CONFIG_PERCPU_PGTBL
+	int i;
+#endif
+	pgd = pti_set_user_pgtbl(pgdp, pgd);
+
+#ifdef CONFIG_PERCPU_PGTBL
+	pgdp = cpu_to_kernel_pgdp((pgd_t*)pgdp);
+	for (i = 0; i < 64; ++i) {
+		WRITE_ONCE(*kernel_to_cpu_pgdp(pgdp, i), pgd);
+	}
+#else
+	WRITE_ONCE(*pgdp, pgd);
+#endif
 }
 
 static inline void native_pgd_clear(pgd_t *pgd)

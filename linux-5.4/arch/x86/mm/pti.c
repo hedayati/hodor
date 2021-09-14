@@ -127,10 +127,8 @@ pgd_t __pti_set_user_pgtbl(pgd_t *pgdp, pgd_t pgd)
 #ifdef CONFIG_PERCPU_PGTBL
 	unsigned long i;
 	pgdp = cpu_to_kernel_pgdp(pgdp);
-
-	for (i = 0; i < 64; ++i)
-		kernel_to_cpu_pgdp(pgdp, i)->pgd = pgd.pgd;
 #endif
+
 	/*
 	 * Changes to the high (kernel) portion of the kernelmode page
 	 * tables are not automatically propagated to the usermode tables.
@@ -169,10 +167,6 @@ pgd_t __pti_set_user_pgtbl(pgd_t *pgdp, pgd_t pgd)
 	 */
 	if ((pgd.pgd & (_PAGE_USER|_PAGE_PRESENT)) == (_PAGE_USER|_PAGE_PRESENT) &&
 	    (__supported_pte_mask & _PAGE_NX)) {
-#ifdef CONFIG_PERCPU_PGTBL
-	    for (i = 0; i < 64; ++i)
-			kernel_to_cpu_pgdp(pgdp, i)->pgd |= _PAGE_NX;
-#endif
 		pgd.pgd |= _PAGE_NX;
 	}
 

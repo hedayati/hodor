@@ -1276,24 +1276,6 @@ static inline void *ptr_clear_bit(void *ptr, int bit)
 	return (void *)__ptr;
 }
 
-#ifdef CONFIG_PERCPU_PGTBL
-static inline void *ptr_set_cpu(void *ptr, unsigned long cpu)
-{
-	unsigned long __ptr = (unsigned long)ptr;
-
-	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
-	__ptr |= (cpu << (PAGE_SHIFT + 1));
-	return (void *)__ptr;
-}
-static inline void *ptr_clear_cpu(void *ptr)
-{
-	unsigned long __ptr = (unsigned long)ptr;
-
-	__ptr &= ~(0x3F << (PAGE_SHIFT + 1));
-	return (void *)__ptr;
-}
-#endif
-
 static inline pgd_t *kernel_to_user_pgdp(pgd_t *pgdp)
 {
 	return ptr_set_bit(pgdp, PTI_PGTABLE_SWITCH_BIT);
@@ -1314,17 +1296,6 @@ static inline p4d_t *user_to_kernel_p4dp(p4d_t *p4dp)
 	return ptr_clear_bit(p4dp, PTI_PGTABLE_SWITCH_BIT);
 }
 
-#ifdef CONFIG_PERCPU_PGTBL
-static inline pgd_t *kernel_to_cpu_pgdp(pgd_t *pgdp, unsigned long cpu)
-{
-	return ptr_set_cpu(pgdp, cpu);
-}
-
-static inline pgd_t *cpu_to_kernel_pgdp(pgd_t *pgdp)
-{
-	return ptr_clear_cpu(pgdp);
-}
-#endif
 #endif /* CONFIG_PAGE_TABLE_ISOLATION */
 
 /*
